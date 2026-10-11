@@ -11,3 +11,7 @@ dist/
 
 # eval output artifact
 packages/evals/results.json
+
+# demo seed artifacts
+demo/.sitdown-demo/
+demo/.canned.js

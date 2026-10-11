@@ -61,8 +61,8 @@ function main() {
     process.exit(1);
   }
 
-  // 1. Reset to a clean slate.
-  for (const p of [vaultsRoot, processed]) rmSync(p, { recursive: true, force: true });
+  // 1. Reset to a clean slate (incl. C's state/ so events re-emit, not dedup to zero).
+  for (const p of [vaultsRoot, processed, path.join(HOME, "state")]) rmSync(p, { recursive: true, force: true });
   rmSync(eventsDb, { force: true });
   mkdirSync(vaultsRoot, { recursive: true });
   mkdirSync(processed, { recursive: true });
