@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sitdown.dev/schemas/digest.json",
+  "title": "Digest",
+  "description": "Summary of one session or commit. Written by B to ~/.sitdown/processed/<source>.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source", "author", "feature", "date", "headline", "summary"],
+  "properties": {
+    "source": {
+      "type": "string",
+      "description": "Source id: 'session:claude:abc123' or 'commit:9f2e1d', or the bare record id.",
+      "minLength": 1
+    },
+    "author": { "type": "string" },
+    "feature": { "type": "string", "description": "Feature slug, e.g. 'payments'." },
+    "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "headline": { "type": "string" },
+    "summary": { "type": "string" },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["slug", "title", "chosen", "reason"],
+        "properties": {
+          "slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+          "title": { "type": "string" },
+          "chosen": { "type": "string" },
+          "rejected": { "type": "array", "items": { "type": "string" } },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "attribution": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "lines", "label"],
+        "properties": {
+          "file": { "type": "string" },
+          "lines": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 1 },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "Inclusive [start, end]."
+          },
+          "label": {
+            "type": "string",
+            "enum": ["human", "autocomplete", "agent", "agent_edited", "human_refactored_by_agent", "pasted"]
+          }
+        }
+      }
+    },
+    "human_interventions": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Count of user messages that correct, reject, or redirect the agent mid-session."
+    }
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sitdown.dev/schemas/session-record.json",
+  "title": "SessionRecord",
+  "description": "One finished coding-agent session. Written by A to ~/.sitdown/inbox/sessions/<id>.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "agent", "author", "repo", "branch", "cwd", "started_at", "ended_at", "prompts", "edits", "transcript_path"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Stable id, namespaced by agent, e.g. 'claude:abc123' or 'codex:ghi789'.",
+      "pattern": "^[a-z_]+:.+$"
+    },
+    "agent": {
+      "type": "string",
+      "enum": ["claude_code", "codex", "cursor", "windsurf", "zed", "other"]
+    },
+    "author": { "type": "string", "description": "Resolved via config.people from git user.name." },
+    "repo": { "type": "string", "description": "owner/name, best-effort." },
+    "branch": { "type": "string" },
+    "cwd": { "type": "string" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "ended_at": { "type": "string", "format": "date-time" },
+    "prompts": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "User prompts in order."
+    },
+    "edits": {
+      "type": "array",
+      "description": "File edits from the agent's edit tool calls (Claude Code Edit/Write/MultiEdit; Codex apply_patch).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "added_lines"],
+        "properties": {
+          "file": { "type": "string" },
+          "added_lines": {
+            "type": "array",
+            "description": "Inclusive [start, end] line ranges that were added/changed.",
+            "items": {
+              "type": "array",
+              "items": { "type": "integer", "minimum": 1 },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          }
+        }
+      }
+    },
+    "transcript_path": {
+      "type": "string",
+      "description": "Absolute or ~-prefixed path to the archived transcript, e.g. ~/.sitdown/archive/claude/abc123.jsonl."
+    }
+  }
+}

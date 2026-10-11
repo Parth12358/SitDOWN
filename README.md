@@ -1,8 +1,6 @@
-# &lt;app&gt;: Automated Agent Documentation
+# SitDOWN: Automated Agent Documentation
 
-> Placeholder name. Replace every `<app>` in these docs with the real name before starting the agents.
-
-`<app>` turns every coding-agent session and commit into living, linked documentation that people and agents can query. Docs are plain Markdown in a vault you own (Obsidian-compatible). A voice assistant that answers questions in standups is a secondary way to read them.
+`SitDOWN` turns every coding-agent session and commit into living, linked documentation that people and agents can query. Docs are plain Markdown in a vault you own (Obsidian-compatible). A voice assistant that answers questions in standups is a secondary way to read them.
 
 Built at SpeedHacks (SF Tech Week, Oct 11 2026). Submission due 5 PM PT.
 
@@ -46,7 +44,7 @@ scripts/             demo-reset, backfill (F)
 
 ```bash
 pnpm install
-cp config.example.json ~/.<app>/config.json   # set vault_path, event_store, llm
+cp config.example.json ~/.sitdown/config.json   # set vault_path, event_store, llm
 pnpm --filter capture run install-hooks        # wires agent + git hooks (local only)
 pnpm --filter mcp run start                    # MCP server
 pnpm --filter evals run eval                   # score the docs
@@ -56,7 +54,7 @@ node scripts/demo-reset.mjs                    # reset to a known demo state
 Register the MCP server in Claude Code so new sessions start briefed:
 
 ```bash
-claude mcp add <app> -- node packages/mcp/dist/stdio.js
+claude mcp add sitdown -- node packages/mcp/dist/stdio.js
 ```
 
 ## Modes

@@ -1,0 +1,16 @@
+{
+  "name": "@sitdown/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Type-only shared contracts (mirrors contracts/schemas/*.json). Read-only to agents.",
+  "types": "./types.ts",
+  "exports": {
+    ".": {
+      "types": "./types.ts"
+    }
+  },
+  "scripts": {
+    "build": "node -e \"process.exit(0)\""
+  }
+}

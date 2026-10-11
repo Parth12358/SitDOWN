@@ -1,0 +1,15 @@
+{
+  "id": "claude:def456",
+  "agent": "claude_code",
+  "author": "alex",
+  "repo": "acme/app",
+  "branch": "feat/auth",
+  "cwd": "/home/alex/app",
+  "started_at": "2026-10-11T16:20:00Z",
+  "ended_at": "2026-10-11T16:48:00Z",
+  "prompts": ["implement JWT refresh tokens for the auth service"],
+  "edits": [
+    { "file": "src/auth/refresh.ts", "added_lines": [[1, 54]] }
+  ],
+  "transcript_path": "~/.sitdown/archive/claude/def456.jsonl"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "claude:abc123",
+  "agent": "claude_code",
+  "author": "sam",
+  "repo": "acme/app",
+  "branch": "feat/payments",
+  "cwd": "/home/sam/app",
+  "started_at": "2026-10-11T18:02:00Z",
+  "ended_at": "2026-10-11T18:40:00Z",
+  "prompts": [
+    "add refund endpoint",
+    "client-side dedupe won't survive a retry from a different device. use idempotency keys on the server."
+  ],
+  "edits": [
+    { "file": "src/refund.ts", "added_lines": [[10, 42]] }
+  ],
+  "transcript_path": "~/.sitdown/archive/claude/abc123.jsonl"
+}

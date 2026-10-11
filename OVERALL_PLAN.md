@@ -46,15 +46,15 @@ Every build agent reads this file before starting. It holds the schedule, the ru
 Files on disk are the interface between packages.
 
 ```text
-~/.<app>/inbox/sessions/   A writes SessionRecord JSON   -> B reads
-~/.<app>/inbox/commits/    A writes CommitRecord JSON    -> B reads
-~/.<app>/processed/        B writes Digest JSON          -> C reads
+~/.sitdown/inbox/sessions/   A writes SessionRecord JSON   -> B reads
+~/.sitdown/inbox/commits/    A writes CommitRecord JSON    -> B reads
+~/.sitdown/processed/        B writes Digest JSON          -> C reads
 <vault_path>/              C writes Markdown notes       -> D reads
 <event store>              C writes events               -> D reads
 MCP server (stdio + HTTP)  D serves tools                -> coding agents, E, F
 ```
 
-Our home directory is `~/.<app>/`, never `~/.alike/`, so we run beside the real Alike without collisions.
+Our home directory is `~/.sitdown/`, never `~/.alike/`, so we run beside the real Alike without collisions.
 
 ### SessionRecord (A writes)
 
@@ -70,7 +70,7 @@ Our home directory is `~/.<app>/`, never `~/.alike/`, so we run beside the real 
   "ended_at": "2026-10-11T18:40:00Z",
   "prompts": ["add refund endpoint"],
   "edits": [{ "file": "src/refund.ts", "added_lines": [[10, 42]] }],
-  "transcript_path": "~/.<app>/archive/claude/abc123.jsonl"
+  "transcript_path": "~/.sitdown/archive/claude/abc123.jsonl"
 }
 ```
 
@@ -181,7 +181,7 @@ Every answer cites its note path and source session or commit.
 
 ### Config
 
-`~/.<app>/config.json`:
+`~/.sitdown/config.json`:
 
 ```json
 {

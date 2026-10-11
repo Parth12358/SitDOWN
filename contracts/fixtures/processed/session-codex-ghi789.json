@@ -1,0 +1,13 @@
+{
+  "source": "session:codex:ghi789",
+  "author": "alex",
+  "feature": "auth",
+  "date": "2026-10-11",
+  "headline": "Rate-limited the login route",
+  "summary": "Added a per-IP rate limiter in front of POST /auth/login: 5 attempts per minute.",
+  "decisions": [],
+  "attribution": [
+    { "file": "src/auth/login.ts", "lines": [88, 90], "label": "agent" }
+  ],
+  "human_interventions": 0
+}

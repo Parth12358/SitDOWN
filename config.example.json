@@ -1,0 +1,9 @@
+{
+  "vault_path": "~/vault",
+  "event_store": "sqlite",
+  "llm": "cloud",
+  "people": {
+    "sam": ["sam@example.com"],
+    "alex": ["alex@example.com"]
+  }
+}

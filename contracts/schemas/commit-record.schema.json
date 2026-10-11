@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sitdown.dev/schemas/commit-record.json",
+  "title": "CommitRecord",
+  "description": "One git commit. Written by A's post-commit hook to ~/.sitdown/inbox/commits/<sha>.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sha", "author", "repo", "branch", "message", "at", "files"],
+  "properties": {
+    "sha": { "type": "string" },
+    "author": { "type": "string" },
+    "repo": { "type": "string" },
+    "branch": { "type": "string" },
+    "message": { "type": "string" },
+    "at": { "type": "string", "format": "date-time" },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "added_lines", "removed_lines"],
+        "properties": {
+          "file": { "type": "string" },
+          "added_lines": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": { "type": "integer", "minimum": 1 },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "removed_lines": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": { "type": "integer", "minimum": 1 },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          }
+        }
+      }
+    },
+    "co_authors": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Names from Co-authored-by: trailers, e.g. 'Claude'."
+    }
+  }
+}

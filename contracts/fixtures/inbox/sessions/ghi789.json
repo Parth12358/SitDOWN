@@ -1,0 +1,15 @@
+{
+  "id": "codex:ghi789",
+  "agent": "codex",
+  "author": "alex",
+  "repo": "acme/app",
+  "branch": "feat/auth",
+  "cwd": "/home/alex/app",
+  "started_at": "2026-10-11T17:05:00Z",
+  "ended_at": "2026-10-11T17:16:00Z",
+  "prompts": ["add rate limiting to the login route"],
+  "edits": [
+    { "file": "src/auth/login.ts", "added_lines": [[88, 90]] }
+  ],
+  "transcript_path": "~/.sitdown/archive/codex/ghi789.jsonl"
+}

@@ -12,13 +12,13 @@ Turn raw session and commit records into Digests: what happened, which decisions
 
 ## Inputs and outputs
 
-- **In:** `~/.<app>/inbox/sessions/*.json`, `~/.<app>/inbox/commits/*.json`, and the transcript at each SessionRecord's `transcript_path`.
-- **Out:** `~/.<app>/processed/<source>.json` (Digest). Schema in `OVERALL_PLAN.md`.
+- **In:** `~/.sitdown/inbox/sessions/*.json`, `~/.sitdown/inbox/commits/*.json`, and the transcript at each SessionRecord's `transcript_path`.
+- **Out:** `~/.sitdown/processed/<source>.json` (Digest). Schema in `OVERALL_PLAN.md`.
 - **Until A delivers:** use `contracts/fixtures/inbox/` and `contracts/fixtures/transcripts/`. Compare your output to `contracts/fixtures/processed/`.
 
 ## Requirements
 
-- [ ] Watch the inbox (polling every few seconds is fine) and process each record exactly once; track processed IDs in `~/.<app>/state/summarizer.json`.
+- [ ] Watch the inbox (polling every few seconds is fine) and process each record exactly once; track processed IDs in `~/.sitdown/state/summarizer.json`.
 - [ ] Export a `summarize(record)` function too, so others can call it directly.
 - [ ] LLM adapter with one interface and two backends: cloud API (default; key from `LLM_API_KEY`) and Ollama (`llm: "ollama"` in config). Ask for strict JSON matching the Digest schema; validate; retry once on invalid output; on second failure write a Digest with only `headline` and `summary`.
 - [ ] Long transcripts: drop tool outputs over 2 KB and keep prompts, agent messages, tool names, and file paths before sending.

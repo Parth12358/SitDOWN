@@ -1,0 +1,2 @@
+# Transient test sandboxes (kept inside the package; never under the user's $HOME).
+test/.tmp/

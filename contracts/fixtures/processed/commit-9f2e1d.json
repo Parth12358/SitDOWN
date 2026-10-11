@@ -1,0 +1,14 @@
+{
+  "source": "commit:9f2e1d",
+  "author": "sam",
+  "feature": "payments",
+  "date": "2026-10-11",
+  "headline": "Fixed refund rounding",
+  "summary": "Corrected rounding in the refund amount calculation. Builds on the agent's refund endpoint; Sam edited the agent-written code by hand.",
+  "decisions": [],
+  "attribution": [
+    { "file": "src/refund.ts", "lines": [10, 42], "label": "agent_edited" },
+    { "file": "src/refund.ts", "lines": [43, 48], "label": "human" }
+  ],
+  "human_interventions": 0
+}

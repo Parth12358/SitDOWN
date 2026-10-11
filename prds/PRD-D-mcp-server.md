@@ -29,7 +29,7 @@ One MCP server that lets coding agents, the voice assistant, and evals query the
 - [ ] `record_decision(...)`: import C's `writeDecision`; don't duplicate the writer.
 - [ ] Every response cites note paths and source session or commit IDs.
 - [ ] Respect `private: true` person notes: only return them to their author (pass `requester` where known).
-- [ ] Install snippet in this package's README: `claude mcp add <app> -- node packages/mcp/dist/stdio.js`.
+- [ ] Install snippet in this package's README: `claude mcp add sitdown -- node packages/mcp/dist/stdio.js`.
 - [ ] Optional: a Claude Code `SessionStart` hook snippet that calls `get_brief` for the current branch.
 
 ## Done when

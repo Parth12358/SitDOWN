@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sitdown.dev/schemas/config.json",
+  "title": "Config",
+  "description": "~/.sitdown/config.json. Keys come from env vars, never here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["vault_path", "event_store", "llm"],
+  "properties": {
+    "vault_path": { "type": "string", "description": "~-prefixed or absolute path to the Obsidian vault." },
+    "event_store": { "type": "string", "enum": ["keewano", "sqlite"] },
+    "llm": { "type": "string", "enum": ["cloud", "ollama"] },
+    "people": {
+      "type": "object",
+      "description": "author slug -> list of identifiers (emails, phone numbers).",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    }
+  }
+}

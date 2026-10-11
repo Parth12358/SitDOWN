@@ -1,0 +1,21 @@
+{
+  "source": "session:claude:abc123",
+  "author": "sam",
+  "feature": "payments",
+  "date": "2026-10-11",
+  "headline": "Added refund endpoint with idempotency keys",
+  "summary": "Added POST /refunds. The agent first tried client-side dedupe; Sam rejected it because a retry from another device would double-charge, and asked for server-side idempotency keys. Final version requires an Idempotency-Key header and stores processed keys.",
+  "decisions": [
+    {
+      "slug": "refund-idempotency",
+      "title": "Use idempotency keys for refunds",
+      "chosen": "Require an Idempotency-Key header; store processed keys and return the stored result on retry.",
+      "rejected": ["Client-side dedupe (agent's first attempt)"],
+      "reason": "Retried refunds from a different device must not double-charge."
+    }
+  ],
+  "attribution": [
+    { "file": "src/refund.ts", "lines": [10, 42], "label": "agent" }
+  ],
+  "human_interventions": 1
+}

@@ -12,7 +12,7 @@ Turn Digests into an Obsidian-compatible Markdown vault people own, plus a strea
 
 ## Inputs and outputs
 
-- **In:** `~/.<app>/processed/*.json` (Digest).
+- **In:** `~/.sitdown/processed/*.json` (Digest).
 - **Out:** Markdown notes in `vault_path`; events in Keewano or SQLite (per `event_store` in config). Formats in `OVERALL_PLAN.md`.
 - **Until B delivers:** use `contracts/fixtures/processed/`.
 

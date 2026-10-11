@@ -1,0 +1,13 @@
+{
+  "sha": "7a3b2c",
+  "author": "alex",
+  "repo": "acme/app",
+  "branch": "feat/auth",
+  "message": "add JWT refresh rotation and login rate limit",
+  "at": "2026-10-11T17:20:00Z",
+  "files": [
+    { "file": "src/auth/refresh.ts", "added_lines": [[1, 54]], "removed_lines": [] },
+    { "file": "src/auth/login.ts", "added_lines": [[88, 90]], "removed_lines": [[88, 88]] }
+  ],
+  "co_authors": []
+}

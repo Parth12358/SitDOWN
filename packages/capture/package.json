@@ -1,0 +1,21 @@
+{
+  "name": "@sitdown/capture",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A: local-only fork of @alikeai/setup. Captures agent sessions and commits into the inbox.",
+  "bin": {
+    "sitdown": "./bin/sitdown.mjs"
+  },
+  "scripts": {
+    "build": "node -e \"process.exit(0)\"",
+    "test": "node --test",
+    "install-hooks": "node ./bin/sitdown.mjs install-hooks",
+    "install-git-hook": "node ./bin/sitdown.mjs install-git-hook"
+  },
+  "files": ["bin", "src", "LICENSE"],
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  }
+}

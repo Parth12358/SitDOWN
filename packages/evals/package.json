@@ -1,0 +1,12 @@
+{
+  "name": "@sitdown/evals",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "F: evals on answer quality against the live MCP server (Sparta).",
+  "scripts": {
+    "build": "node -e \"process.exit(0)\"",
+    "eval": "node src/run.mjs",
+    "test": "echo \"(evals) no tests wired yet\" && exit 0"
+  }
+}

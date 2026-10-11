@@ -13,7 +13,7 @@ Every finished coding-agent session and every commit lands in the inbox as a val
 ## Inputs and outputs
 
 - **In:** agent transcripts on disk; git commits.
-- **Out:** `~/.<app>/inbox/sessions/<id>.json` (SessionRecord) and `~/.<app>/inbox/commits/<sha>.json` (CommitRecord). Schemas in `OVERALL_PLAN.md`.
+- **Out:** `~/.sitdown/inbox/sessions/<id>.json` (SessionRecord) and `~/.sitdown/inbox/commits/<sha>.json` (CommitRecord). Schemas in `OVERALL_PLAN.md`.
 
 ## Starting point
 
@@ -34,7 +34,7 @@ What's in it:
 | `paths.mjs` | Config and home paths per agent and OS | Keep; rename home dir |
 | `writers.mjs`, `dialects.mjs`, `matrix.mjs` | Writes hooks into each agent's config with backups, additive only | Keep |
 | `runtime/sweep.mjs` | Archives transcripts to disk; uploads if paired | Keep archive; remove upload |
-| `capture-rules.mjs` | `.alikeignore` rules (skip repos, paths, tools) | Keep; rename to `.<app>ignore` |
+| `capture-rules.mjs` | `.alikeignore` rules (skip repos, paths, tools) | Keep; rename to `.sitdownignore` |
 | `parser-codex.mjs`, `runtime/sqlite-collector.mjs` | Codex parsing; Windsurf and Zed SQLite readers | Keep |
 | `runtime/hook.mjs` | Hook runtime; injects context and posts telemetry | Keep hook entry; remove network |
 | `runtime/telemetry.mjs`, `runtime/creds.mjs`, pairing in `cli.mjs` | Telemetry, credentials, pairing | Remove |
@@ -45,12 +45,12 @@ Note: `runSweep` already archives locally when there are no credentials (`canUpl
 ## Requirements
 
 - [ ] Remove pairing, uploads, telemetry, and every call to `/pair/*`, `/mcp`, and `/harness-telemetry`. Add a test that fails if any `fetch` remains in the runtime.
-- [ ] Rename the home directory to `~/.<app>/`, the hook command to `<app>`, and the guidance markers, so it runs beside the real Alike (which the team is also using today) without touching its config entries.
+- [ ] Rename the home directory to `~/.sitdown/`, the hook command to `sitdown`, and the guidance markers, so it runs beside the real Alike (which the team is also using today) without touching its config entries.
 - [ ] Remove the context-injection and agent-guidance writes (CLAUDE.md/AGENTS.md notes). Our product reads through MCP (PRD D), not injection.
 - [ ] On each agent's end-of-session hook: run the archive sweep for that session, parse the transcript into a SessionRecord, and write it atomically to the inbox.
 - [ ] Extract `edits` from the agent's file-edit tool calls (Claude Code `Edit`, `Write`, `MultiEdit`; Codex `apply_patch`) as file plus added line ranges.
 - [ ] `author` comes from `git config user.name` in the session's working directory, mapped through `people` in config.
-- [ ] Git `post-commit` hook written in Node: CommitRecord with added and removed line ranges from `git diff --unified=0 HEAD~1 HEAD`, and `co_authors` from `Co-authored-by:` trailers. Installer command: `<app> install-git-hook` per repo.
+- [ ] Git `post-commit` hook written in Node: CommitRecord with added and removed line ranges from `git diff --unified=0 HEAD~1 HEAD`, and `co_authors` from `Co-authored-by:` trailers. Installer command: `sitdown install-git-hook` per repo.
 - [ ] Agent priority: Claude Code first, then Codex, then Cursor. Others are stretch.
 - [ ] Hooks fail open and exit within 5 seconds, always.
 - [ ] Keep `--dry-run`, `--doctor`, `--uninstall`.

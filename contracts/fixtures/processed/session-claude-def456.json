@@ -1,0 +1,21 @@
+{
+  "source": "session:claude:def456",
+  "author": "alex",
+  "feature": "auth",
+  "date": "2026-10-11",
+  "headline": "Added JWT refresh tokens with rotation",
+  "summary": "Implemented short-lived (15 min) access tokens plus refresh tokens that rotate on every use, revoking the previous token. Chosen over a single long-lived refresh token to limit the blast radius of a stolen token.",
+  "decisions": [
+    {
+      "slug": "jwt-refresh-rotation",
+      "title": "Rotate refresh tokens on every use",
+      "chosen": "Rotate the refresh token on each use and revoke the old one.",
+      "rejected": ["A single long-lived refresh token"],
+      "reason": "Rotation limits the damage if a refresh token is stolen."
+    }
+  ],
+  "attribution": [
+    { "file": "src/auth/refresh.ts", "lines": [1, 54], "label": "agent" }
+  ],
+  "human_interventions": 0
+}

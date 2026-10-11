@@ -1,0 +1,12 @@
+{
+  "sha": "9f2e1d",
+  "author": "sam",
+  "repo": "acme/app",
+  "branch": "feat/payments",
+  "message": "fix refund rounding",
+  "at": "2026-10-11T18:45:00Z",
+  "files": [
+    { "file": "src/refund.ts", "added_lines": [[10, 48]], "removed_lines": [] }
+  ],
+  "co_authors": ["Claude"]
+}

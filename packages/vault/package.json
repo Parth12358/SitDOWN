@@ -1,0 +1,25 @@
+{
+  "name": "@sitdown/vault",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "C: writes the Obsidian-compatible Markdown vault and emits typed events (Keewano or SQLite).",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -w -p tsconfig.json",
+    "process": "node dist/bin/process.js",
+    "backfill": "node dist/bin/backfill.js",
+    "test": "tsc -p tsconfig.json && vitest run"
+  },
+  "dependencies": {
+    "@sitdown/contracts": "workspace:*",
+    "sql.js": "^1.12.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^20.14.0",
+    "vitest": "^2.1.0"
+  }
+}

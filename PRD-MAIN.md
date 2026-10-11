@@ -1,6 +1,6 @@
-# PRD: &lt;app&gt; (Automated Agent Documentation)
+# PRD: sitdown (Automated Agent Documentation)
 
-`<app>` automatically turns every agent session and commit into living, linked documentation that people and agents can query. A voice assistant in meetings is a secondary way to read it.
+`sitdown` automatically turns every agent session and commit into living, linked documentation that people and agents can query. A voice assistant in meetings is a secondary way to read it.
 
 ## Problem
 
@@ -33,7 +33,7 @@ Agent-heavy teams produce code faster than anyone can document it, and the reaso
 
 ## Users and use cases
 
-| User | Use case | Today | With `<app>` |
+| User | Use case | Today | With `sitdown` |
 | --- | --- | --- | --- |
 | Developer | Resume work or hand off to a new agent session | Re-explain context to the agent | Agent starts briefed from the docs |
 | Developer | Keep an Obsidian vault current | Manual notes that go stale | Notes update automatically |
