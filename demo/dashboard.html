@@ -358,7 +358,7 @@ document.addEventListener("keydown", e=>{
   if(e.key==="Enter" && e.target.id==="askInput"){ ask(e.target.value); return; }
   if(e.key==="/" && !/^(input|textarea)$/i.test(e.target.tagName)){ e.preventDefault(); if(view!=="ask") { view="ask"; render(); } const i=document.getElementById("askInput"); if(i) i.focus(); }
 });
-document.getElementById("themeBtn").addEventListener("click", ()=>{ const cur=document.documentElement.getAttribute("data-theme")||"dark"; document.documentElement.setAttribute("data-theme", cur==="dark"?"light":"dark"); });
-document.documentElement.setAttribute("data-theme","dark");
+document.getElementById("themeBtn").addEventListener("click", ()=>{ const cur=document.documentElement.getAttribute("data-theme")||"light"; document.documentElement.setAttribute("data-theme", cur==="light"?"dark":"light"); });
+document.documentElement.setAttribute("data-theme","light"); // cream ground by default
 render();
 </script>
