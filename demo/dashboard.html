@@ -1,0 +1,363 @@
+<style>
+  :root {
+    --bg: #0a0d12; --panel: #11151c; --panel-2: #161c25; --edge: #222b36; --edge-soft: #19202a;
+    --text: #e8edf3; --text-soft: #9aa7b3; --faint: #5e6b77;
+    --accent: #e3a73e; --accent-2: #f1c270; --accent-dim: #3a2f16;
+    --agent: #9a92f2; --human: #46c7aa; --agent-wash: #1c1b30; --human-wash: #0f2a26;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, sans-serif;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+  :root[data-theme="light"] {
+    --bg: #f3f5f8; --panel: #ffffff; --panel-2: #eceff3; --edge: #d7dee5; --edge-soft: #e6ebf0;
+    --text: #121921; --text-soft: #4f5b67; --faint: #8794a0;
+    --accent: #9a6b12; --accent-2: #7a5410; --accent-dim: #f0e3c4;
+    --agent: #4f46b8; --human: #15746a; --agent-wash: #eceafa; --human-wash: #dcefec;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  button { font-family: inherit; cursor: pointer; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  ::selection { background: var(--accent); color: #0a0d12; }
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--edge); border-radius: 10px; border: 3px solid var(--bg); }
+
+  .shell { height: 100%; display: flex; flex-direction: column; }
+
+  /* top bar */
+  .bar { display: flex; align-items: center; gap: 18px; padding: 12px 20px; border-bottom: 1px solid var(--edge-soft); flex: none; }
+  .mark { font-family: var(--serif); font-size: 17px; font-weight: 600; letter-spacing: .01em; }
+  .mark em { font-style: normal; color: var(--accent); }
+  .nav { display: flex; gap: 2px; }
+  .nav button { border: 0; background: none; color: var(--text-soft); font-size: 13.5px; padding: 6px 11px; border-radius: 7px; }
+  .nav button:hover { color: var(--text); background: var(--panel); }
+  .nav button.on { color: var(--accent); }
+  .bar .sp { flex: 1; }
+  .persona { display: flex; align-items: center; gap: 4px; background: var(--panel); border: 1px solid var(--edge); border-radius: 999px; padding: 3px; }
+  .seal { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-family: var(--serif); font-size: 12px; font-weight: 600; color: #0a0d12; border: 0; background: var(--faint); }
+  .seal.on { box-shadow: 0 0 0 2px var(--accent); }
+  .tbtn { border: 1px solid var(--edge); background: var(--panel); color: var(--text-soft); width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; font-size: 14px; }
+  .tbtn:hover { color: var(--text); }
+
+  .stage { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+  /* HOME (centered prompt) */
+  .home { align-items: center; justify-content: center; text-align: center; padding: 24px; position: relative; overflow: hidden; }
+  .home::before { content: ""; position: absolute; top: 34%; left: 50%; width: 620px; height: 620px; transform: translate(-50%,-50%);
+    background: radial-gradient(circle, color-mix(in srgb, var(--accent) 16%, transparent), transparent 62%); filter: blur(12px); pointer-events: none; }
+  .home-in { position: relative; width: 100%; max-width: 640px; }
+  .hero-mark { font-family: var(--serif); font-size: clamp(38px, 7vw, 62px); font-weight: 600; letter-spacing: -.02em; margin: 0 0 10px; }
+  .hero-mark em { font-style: normal; color: var(--accent); }
+  .hero-sub { font-family: var(--serif); font-style: italic; font-size: clamp(16px, 2.4vw, 20px); color: var(--text-soft); margin: 0 0 30px; }
+
+  .composer { display: flex; align-items: center; gap: 0; background: var(--panel); border: 1px solid var(--edge); border-radius: 14px; padding: 6px 6px 6px 18px; transition: border-color .15s, box-shadow .15s; }
+  .composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); }
+  .composer .pre { color: var(--accent); font-family: var(--serif); font-size: 18px; margin-right: 10px; user-select: none; }
+  .composer input { flex: 1; border: 0; background: none; color: var(--text); font-size: 17px; padding: 12px 6px; font-family: var(--sans); }
+  .composer input::placeholder { color: var(--faint); }
+  .composer input:focus { outline: none; }
+  .send { border: 0; background: var(--accent); color: #0a0d12; width: 40px; height: 40px; border-radius: 9px; font-size: 17px; display: grid; place-items: center; flex: none; font-weight: 700; }
+  .send:hover { background: var(--accent-2); }
+
+  .starters { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 18px; }
+  .starter { border: 1px solid var(--edge); background: var(--panel); color: var(--text-soft); font-size: 13px; padding: 8px 13px; border-radius: 999px; }
+  .starter:hover { color: var(--text); border-color: var(--accent); }
+  .starter b { color: var(--accent); font-weight: 600; margin-right: 6px; font-family: var(--mono); font-size: 11px; }
+  .scope-line { margin-top: 26px; font-size: 12.5px; color: var(--faint); }
+  .scope-line b { color: var(--text-soft); font-weight: 600; }
+  .scope-line .k { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+
+  /* THREAD (chat) */
+  .thread { }
+  .scrollarea { flex: 1; min-height: 0; overflow-y: auto; }
+  .col { max-width: 720px; margin: 0 auto; padding: 26px 24px 20px; }
+  .msg { padding: 8px 0 22px; }
+  .msg .you { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+  .msg .you .seal { width: 22px; height: 22px; }
+  .msg .you .qq { font-family: var(--serif); font-size: 19px; color: var(--text); line-height: 1.35; }
+  .msg .meta { display: flex; align-items: center; gap: 10px; margin: -6px 0 12px 31px; font-size: 11.5px; color: var(--faint); }
+  .msg .meta .tool { font-family: var(--mono); color: var(--accent); }
+  .msg .meta .lat { font-family: var(--mono); }
+  .answer { margin-left: 31px; border-left: 2px solid var(--accent); padding-left: 18px; }
+  .msg.fresh .answer { animation: ansIn .32s cubic-bezier(.2,.7,.3,1); }
+  @keyframes ansIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .prose { font-family: var(--serif); font-size: 16.5px; line-height: 1.6; color: var(--text); text-wrap: pretty; }
+  .prose .lead { margin: 0 0 10px; } .prose p { margin: 0 0 10px; } .prose p:last-child { margin: 0; }
+
+  .record { margin: 10px 0 2px; }
+  .record .row { display: grid; grid-template-columns: 86px 1fr; gap: 6px 16px; padding: 4px 0; }
+  .record dt { font-family: var(--serif); font-style: italic; font-size: 14px; color: var(--text-soft); }
+  .record dd { margin: 0; font-family: var(--serif); font-size: 16px; }
+  .record .no s { color: var(--faint); }
+
+  .stamp { font-family: var(--mono); font-size: 10.5px; padding: 1px 7px; border-radius: 4px; }
+  .stamp.feature { background: var(--panel-2); color: var(--text-soft); border: 1px solid var(--edge); }
+  .stamp.agent { background: var(--agent-wash); color: var(--agent); }
+  .stamp.human { background: var(--human-wash); color: var(--human); }
+  .hand { display: inline-flex; align-items: center; gap: 7px; }
+  .hand .seal { width: 20px; height: 20px; font-size: 11px; }
+  .by { font-family: var(--serif); }
+
+  .sources { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 6px 7px; align-items: baseline; }
+  .sources .lab { font-family: var(--serif); font-style: italic; font-size: 12.5px; color: var(--faint); margin-right: 2px; }
+  .src { font-family: var(--mono); font-size: 11px; color: var(--text-soft); background: var(--panel); border: 1px solid var(--edge); padding: 2px 7px; border-radius: 5px; }
+  .src.note { color: var(--text); border-color: var(--edge); }
+
+  .finds { display: flex; flex-direction: column; }
+  .find { padding: 10px 0; border-top: 1px solid var(--edge-soft); }
+  .find:first-child { border-top: 0; }
+  .find .t { font-family: var(--serif); font-size: 17px; }
+  .find .p { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  .find .s { font-family: var(--serif); font-size: 15px; color: var(--text-soft); }
+
+  .rank { display: flex; flex-direction: column; gap: 11px; }
+  .rankrow { display: flex; align-items: center; gap: 11px; }
+  .rankrow .who b { font-family: var(--serif); font-size: 16px; }
+  .rankrow .who small { display: block; font-size: 11.5px; color: var(--faint); }
+  .bar2 { flex: 1; height: 3px; background: var(--edge); min-width: 46px; position: relative; }
+  .bar2 > i { position: absolute; inset: 0 auto 0 0; background: var(--accent); }
+  .scoreN { font-family: var(--mono); font-size: 13px; color: var(--text-soft); width: 40px; text-align: right; }
+  .askp { border: 1px solid var(--edge); background: none; color: var(--text); border-radius: 8px; padding: 6px 12px; font-size: 13px; }
+  .askp:hover { background: var(--accent); color: #0a0d12; border-color: var(--accent); }
+
+  .priv { margin-top: 12px; border: 1px solid var(--edge); border-left: 3px solid var(--human); background: var(--panel); padding: 11px 14px; border-radius: 0 8px 8px 0; }
+  .priv.locked { border-left-color: var(--faint); border-left-style: dashed; }
+  .priv .h { display: flex; gap: 8px; align-items: center; font-family: var(--serif); font-style: italic; font-size: 13.5px; color: var(--text-soft); margin-bottom: 4px; }
+  .priv .h .lk { margin-left: auto; font-style: normal; }
+  .priv p { margin: 0; font-family: var(--serif); font-size: 15px; color: var(--text); }
+  .priv.locked p { color: var(--faint); }
+
+  .idk .big { font-family: var(--serif); font-size: 20px; margin: 0 0 6px; }
+  .idk .s { font-family: var(--serif); font-size: 15px; color: var(--text-soft); margin: 0 0 12px; }
+
+  /* dock */
+  .dock { flex: none; border-top: 1px solid var(--edge-soft); background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(8px); padding: 14px 24px 18px; }
+  .dock .col { padding: 0; }
+  .dock .composer { border-radius: 12px; }
+  .dock .hint { text-align: center; font-size: 11px; color: var(--faint); margin-top: 8px; }
+  .dock .hint b { color: var(--text-soft); font-family: var(--mono); }
+
+  /* browse column */
+  .browse { overflow-y: auto; }
+  .browse .col { padding: 30px 24px 70px; }
+  .vh { margin-bottom: 20px; }
+  .vh h1 { font-family: var(--serif); font-size: 26px; font-weight: 600; margin: 0 0 6px; }
+  .vh p { margin: 0; color: var(--text-soft); max-width: 60ch; }
+  .rec { padding: 18px 0; border-top: 1px solid var(--edge-soft); }
+  .rec:first-child { border-top: 0; }
+  .rec[data-run] { cursor: pointer; }
+  .rec .toprow { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+  .rec h3 { font-family: var(--serif); font-size: 19px; font-weight: 600; margin: 0; }
+  .rec .kind { font-family: var(--serif); font-style: italic; color: var(--faint); font-size: 13px; }
+  .rec .where { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  .rec[data-run]:hover h3 { color: var(--accent); }
+  .rec[data-run] .toprow::after { content: "ask ↵"; font-family: var(--mono); font-size: 10px; color: var(--faint); opacity: 0; }
+  .rec[data-run]:hover .toprow::after { opacity: 1; }
+  .hist { list-style: none; margin: 0; padding: 0; }
+  .hist li { display: grid; grid-template-columns: 50px 1fr; gap: 12px; padding: 5px 0; font-family: var(--serif); font-size: 15px; color: var(--text-soft); border-bottom: 1px solid var(--edge-soft); }
+  .hist li:last-child { border-bottom: 0; }
+  .hist .d { font-family: var(--mono); font-size: 11px; color: var(--faint); padding-top: 3px; }
+  .hist .x { color: var(--text); }
+  .attr { display: flex; align-items: center; gap: 14px; margin-top: 10px; }
+  .attr .track { flex: 1; max-width: 300px; display: flex; height: 6px; border: 1px solid var(--edge); }
+  .attr .track > i { height: 100%; }
+  .attr .leg { font-family: var(--mono); font-size: 11px; color: var(--text-soft); display: flex; gap: 14px; }
+  .attr .leg i { display: inline-block; width: 8px; height: 8px; margin-right: 5px; }
+  .spark { display: flex; align-items: flex-end; gap: 3px; height: 40px; }
+  .spark > i { flex: 1; background: var(--accent); opacity: .85; }
+
+  .hidden { display: none !important; }
+  @media (max-width: 640px) { .nav { display: none; } .col { padding-left: 16px; padding-right: 16px; } }
+</style>
+
+<div class="shell">
+  <header class="bar">
+    <span class="mark">Sit<em>DOWN</em></span>
+    <nav class="nav" id="nav">
+      <button data-view="ask" class="on">Ask</button>
+      <button data-view="decisions">Decisions</button>
+      <button data-view="features">Features</button>
+      <button data-view="people">People</button>
+      <button data-view="activity">Activity</button>
+    </nav>
+    <span class="sp"></span>
+    <div class="persona" id="persona" title="Ask as"></div>
+    <button class="tbtn" id="themeBtn" aria-label="Toggle theme">◑</button>
+  </header>
+  <div class="stage" id="stage"></div>
+</div>
+
+<script>
+const PEOPLE = { sam: { color: "#e3a73e", contact: "sam@example.com" }, alex: { color: "#9a92f2", contact: "alex@example.com" } };
+const DECISIONS = {
+  "refund-idempotency": { title: "Use idempotency keys for refunds", feature: "payments", author: "sam", date: "2026-10-11",
+    chosen: "Require an Idempotency-Key header; store processed keys and return the stored result on retry.",
+    rejected: ["Client-side dedupe — the agent's first attempt"], reason: "A retried refund from a different device must not double-charge.",
+    sources: ["session:claude:abc123", "commit:9f2e1d"], path: "central/decisions/2026-10-11-refund-idempotency.md" },
+  "jwt-refresh-rotation": { title: "Rotate refresh tokens on every use", feature: "auth", author: "alex", date: "2026-10-11",
+    chosen: "Rotate the refresh token on each use and revoke the previous one; access tokens live 15 minutes.",
+    rejected: ["A single long-lived refresh token"], reason: "Rotation limits the damage if a refresh token is stolen.",
+    sources: ["session:claude:def456"], path: "central/decisions/2026-10-11-jwt-refresh-rotation.md" },
+};
+const FEATURES = {
+  payments: { path: "central/features/payments.md", attribution: { agent: 33, human: 6 }, history: [
+    { date: "2026-10-11", headline: "Fixed refund rounding", who: "sam", source: "commit:9f2e1d" },
+    { date: "2026-10-11", headline: "Added refund endpoint with idempotency keys", who: "sam", decision: "refund-idempotency", source: "session:claude:abc123" } ] },
+  auth: { path: "central/features/auth.md", attribution: { agent: 57, human: 0 }, history: [
+    { date: "2026-10-11", headline: "Rate-limited the login route, 5/min per IP", who: "alex", source: "session:codex:ghi789" },
+    { date: "2026-10-11", headline: "Added JWT refresh tokens with rotation", who: "alex", decision: "jwt-refresh-rotation", source: "session:claude:def456" } ] },
+};
+const DAILY = { sam: ["Added refund endpoint with idempotency keys", "Fixed refund rounding"], alex: ["Added JWT refresh tokens with rotation", "Rate-limited the login route"] };
+const WHO = { payments: [{ who: "sam", score: 5.20, touches: 2, commits: 1 }], auth: [{ who: "alex", score: 3.50, touches: 2, commits: 0 }] };
+const PRIVATE_ME = { sam: "Idempotency store is in-memory for now — revisit before launch. The rounding bug was mine, not the agent's.", alex: "Refresh-token table needs a cleanup job for revoked tokens; filed a TODO." };
+const EVENTS = [["FeatureTouched","payments"],["HumanIntervened",""],["AgentSession","claude_code"],["DecisionRecorded","refund-idempotency"],["CommitMade","39"],["AuthorType","agent_edited"],["FeatureTouched","auth"],["AgentSession","claude_code"],["DecisionRecorded","jwt-refresh-rotation"],["FeatureTouched","auth"],["AgentSession","codex"],["CommitMade","57"]];
+const FEATURE_WORDS = { payments: ["refund","payment","idempoten","charge","rounding"], auth: ["auth","login","jwt","token","refresh","rate","rotat"] };
+const UNKNOWN = ["database","billing","deploy","cache","caching","kubernetes","search","analytics","pricing"];
+const STARTERS = [
+  ["why", "Why idempotency keys for refunds?"],
+  ["who", "Who knows the payments feature?"],
+  ["recap", "What has alex been working on?"],
+  ["brief", "What's the recent context on auth?"],
+  ["gap", "What database are we using?"],
+];
+
+let persona = "sam", activeTool = "auto", view = "ask", fresh = false;
+const msgs = [];
+
+const rnd = (a,b) => Math.round(a + Math.random()*(b-a));
+const esc = s => String(s).replace(/[&<>]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;" }[c]));
+const feat = q => Object.keys(FEATURE_WORDS).find(f => FEATURE_WORDS[f].some(w => q.toLowerCase().includes(w)));
+const seal = n => `<span class="seal" style="background:${PEOPLE[n]?.color||'var(--faint)'}">${n[0].toUpperCase()}</span>`;
+
+function pickTool(q){ const s=q.toLowerCase();
+  if(/who (knows|owns|built|wrote|made|should)|who's/.test(s)) return "who_knows";
+  if(/why|decision|chose|rejected|instead|trade-?off/.test(s)) return "get_decision";
+  if(/summar|what did|what has|standup|been working|catch me up/.test(s)) return "get_summary";
+  if(/brief|recent|what's new|context|going on|status/.test(s)) return "get_brief";
+  return "search_docs"; }
+const T = {
+  get_brief(q){ const f=feat(q)||"payments"; const d=Object.entries(DECISIONS).filter(([,x])=>x.feature===f);
+    return { kind:"brief", feature:f, decisions:d.map(([slug,x])=>({slug,...x})), who:WHO[f]||[], citations:[FEATURES[f].path,...d.map(([,x])=>x.path),...d.flatMap(([,x])=>x.sources)] }; },
+  get_decision(q){ const f=feat(q); let e=Object.entries(DECISIONS).find(([slug,x])=>q.toLowerCase().split(/[^a-z]+/).some(w=>w.length>3&&(slug.includes(w)||x.title.toLowerCase().includes(w))))||(f&&Object.entries(DECISIONS).find(([,x])=>x.feature===f));
+    if(!e) return {kind:"idk"}; const [slug,x]=e; return {kind:"decision",slug,...x,citations:[x.path,...x.sources]}; },
+  who_knows(q){ const f=feat(q); if(!f||!WHO[f]) return {kind:"idk",askAround:true}; return {kind:"who",feature:f,ranked:WHO[f],citations:[FEATURES[f].path,"event_store:sqlite"]}; },
+  get_summary(q){ const only=["sam","alex"].find(n=>q.toLowerCase().includes(n)); const names=only?[only]:["sam","alex"];
+    return {kind:"summary",people:names.map(n=>({who:n,items:DAILY[n],private:(n===persona)?PRIVATE_ME[n]:null,locked:(n!==persona)})),citations:["central/daily/2026-10-11.md",...(names.includes(persona)?[persona+"/me.md"]:[])]}; },
+  search_docs(q){ if(UNKNOWN.some(t=>q.toLowerCase().includes(t))) return {kind:"idk"}; const f=feat(q); const h=[];
+    for(const [slug,x] of Object.entries(DECISIONS)) if(!f||x.feature===f) h.push({path:x.path,title:x.title,type:"decision",snip:x.chosen,sources:x.sources});
+    for(const [n,x] of Object.entries(FEATURES)) if(!f||n===f) h.push({path:x.path,title:n,type:"feature",snip:x.history[0].headline,sources:[x.history[0].source]});
+    return h.length?{kind:"search",hits:h.slice(0,4),citations:h.slice(0,4).flatMap(z=>[z.path,...z.sources])}:{kind:"idk"}; },
+};
+function ask(q){ q=(q||"").trim(); if(!q) return; const tool=activeTool==="auto"?pickTool(q):activeTool;
+  msgs.push({q,tool,as:persona,res:T[tool](q),lat:rnd(2,26)}); fresh=true; if(view!=="ask") view="ask"; render(); }
+
+/* answer bodies */
+function recordDL(d){ return `<dl class="record"><div class="row"><dt>chose</dt><dd>${esc(d.chosen)}</dd></div>
+  <div class="row"><dt>rejected</dt><dd class="no"><s>${esc(d.rejected.join("; "))}</s></dd></div>
+  <div class="row"><dt>because</dt><dd>${esc(d.reason)}</dd></div></dl>`; }
+function sourcesRow(c){ return c&&c.length?`<div class="sources"><span class="lab">from</span>${[...new Set(c)].map(x=>`<span class="src ${x.includes('/')?'note':''}">${esc(x)}</span>`).join("")}</div>`:""; }
+function body(res){ switch(res.kind){
+  case "brief": return `<p class="prose lead">On <span class="stamp feature">${res.feature}</span> — the latest decisions, and who's in it.</p>
+    ${res.decisions.map(d=>`<p class="prose" style="margin:14px 0 2px"><b>${esc(d.title)}</b></p>${recordDL(d)}`).join("")}
+    <p class="prose" style="color:var(--text-soft);margin-top:12px">Most active: ${res.who.map(w=>`${seal(w.who)} ${w.who}`).join(", ")||"nobody yet"}.</p>`;
+  case "decision": return `<p class="prose lead"><span class="hand">${seal(res.author)}</span> <b>${esc(res.title)}</b> &nbsp;<span class="stamp feature">${res.feature}</span></p>${recordDL(res)}`;
+  case "who": { const m=Math.max(...res.ranked.map(r=>r.score)); return `<p class="prose lead">For <span class="stamp feature">${res.feature}</span>, ask:</p><div class="rank">${res.ranked.map(r=>`
+    <div class="rankrow">${seal(r.who)}<div class="who"><b>${r.who}</b><small>${r.touches} touches · ${r.commits} commit${r.commits===1?"":"s"} · recency-weighted</small></div>
+    <div class="bar2"><i style="width:${Math.round(r.score/m*100)}%"></i></div><span class="scoreN">${r.score.toFixed(2)}</span>
+    <button class="askp" onclick="pingPerson('${r.who}','${res.feature}')">Ask ${r.who}</button></div>`).join("")}</div>`; }
+  case "summary": return res.people.map(p=>`<div style="margin-bottom:14px">
+    <p class="prose" style="margin:0 0 4px"><span class="hand">${seal(p.who)} <b class="by">${p.who}</b></span> worked on ${p.items.map(i=>i.replace(/^Added |^Fixed |^Rate-limited /,"").toLowerCase()).join(", ")}.</p>
+    ${p.private?`<div class="priv"><div class="h">private note<span class="lk">🔓 you</span></div><p>${esc(p.private)}</p></div>`:(p.locked?`<div class="priv locked"><div class="h">${p.who}'s private note<span class="lk">🔒</span></div><p>Kept in ${p.who}'s own vault — read as ${p.who} to open it.</p></div>`:"")}</div>`).join("");
+  case "search": return `<div class="finds">${res.hits.map(h=>`<div class="find"><div class="t">${esc(h.title)}</div><div class="p">${esc(h.path.split("/").slice(1).join("/"))}</div><div class="s">${esc(h.snip)}</div></div>`).join("")}</div>`;
+  case "idk": return `<div class="idk"><p class="big">Not in the record — yet.</p><p class="s">Nothing documented covers this. Log it as a gap and whoever owns it next gets nudged to write it down.</p><button class="askp" onclick="logGap()">Log the gap</button></div>`;
+  case "custom": return res.html; } }
+
+function msgHTML(s, isLast){ return `<div class="msg${isLast&&fresh?' fresh':''}">
+  <div class="you">${seal(s.as)}<span class="qq">${esc(s.q)}</span></div>
+  <div class="meta"><span class="tool">${s.tool}</span><span class="lat">${s.lat} ms</span></div>
+  <div class="answer">${body(s.res)}${sourcesRow(s.res.citations)}</div></div>`; }
+
+function composer(ph){ return `<div class="composer"><span class="pre">¶</span>
+  <input id="askInput" placeholder="${ph}" autocomplete="off" aria-label="Ask a question" />
+  <button class="send" id="askGo" aria-label="Ask">▸</button></div>`; }
+
+/* views */
+function renderStage(){
+  const st = document.getElementById("stage");
+  if(view==="ask" && msgs.length===0){
+    st.className = "stage home";
+    st.innerHTML = `<div class="home-in">
+      <h1 class="hero-mark">Sit<em>DOWN</em></h1>
+      <p class="hero-sub">Ask the record — your team's sessions and commits, read back to you.</p>
+      ${composer("What do you want to know?")}
+      <div class="starters">${STARTERS.map(([k,q])=>`<button class="starter" data-q="${esc(q)}"><b>${k}</b>${esc(q)}</button>`).join("")}</div>
+      <p class="scope-line">central <b>acme/app</b> &nbsp;·&nbsp; asking as <span class="k">${persona==='anon'?'guest':persona}</span> &nbsp;·&nbsp; private notes open only for you</p>
+    </div>`;
+    return;
+  }
+  if(view==="ask"){
+    st.className = "stage thread";
+    st.innerHTML = `<div class="scrollarea" id="scroll"><div class="col">${msgs.map((s,i)=>msgHTML(s,i===msgs.length-1)).join("")}</div></div>
+      <div class="dock"><div class="col">${composer("Ask a follow-up…")}<div class="hint">asking as <b>${persona==='anon'?'guest':persona}</b> · tool <b>${activeTool}</b> · press <b>/</b> to focus</div></div></div>`;
+    const sc = document.getElementById("scroll"); if(sc) sc.scrollTop = sc.scrollHeight;
+    return;
+  }
+  st.className = "stage browse";
+  st.innerHTML = `<div class="col">${BROWSE[view]()}</div>`;
+}
+
+const BROWSE = {
+  decisions: () => `<div class="vh"><h1>Decisions</h1><p>The reasoning the diff never shows — what was chosen, what was turned down, and why.</p></div>
+    ${Object.entries(DECISIONS).map(([slug,d])=>`<div class="rec" data-run="get_decision" data-arg="${esc(d.title)}">
+      <div class="toprow"><h3>${esc(d.title)}</h3><span class="kind">${d.feature}</span><span class="where">${slug}</span></div>${recordDL(d)}
+      <div class="sources"><span class="lab">recorded by</span><span class="hand">${seal(d.author)} <span class="by" style="font-size:14px">${d.author}</span></span>${d.sources.map(s=>`<span class="src">${s}</span>`).join("")}</div></div>`).join("")}`,
+  features: () => `<div class="vh"><h1>Features</h1><p>History newest first, with how much was written by an agent versus a human — recorded at the source, not guessed.</p></div>
+    ${Object.entries(FEATURES).map(([n,ft])=>{ const tot=ft.attribution.agent+ft.attribution.human||1, ap=Math.round(ft.attribution.agent/tot*100);
+      return `<div class="rec" data-run="get_brief" data-arg="${n}"><div class="toprow"><h3>${n}</h3><span class="kind">feature</span><span class="where">${ft.path}</span></div>
+      <ul class="hist">${ft.history.map(h=>`<li><span class="d">${h.date.slice(5)}</span><span><span class="x">${esc(h.headline)}</span>${h.decision?` <span class="stamp feature">decision</span>`:""}</span></li>`).join("")}</ul>
+      <div class="attr"><div class="track"><i style="width:${ap}%;background:var(--agent)"></i><i style="width:${100-ap}%;background:var(--human)"></i></div>
+        <div class="leg"><span><i style="background:var(--agent)"></i>agent ${ap}%</span><span><i style="background:var(--human)"></i>human ${100-ap}%</span></div></div></div>`; }).join("")}`,
+  people: () => `<div class="vh"><h1>People</h1><p>Who worked on what. Everyone keeps a private vault; the shareable index is all anyone else sees.</p></div>
+    ${Object.keys(PEOPLE).map(n=>{ const feats=Object.entries(FEATURES).filter(([,f])=>f.history.some(h=>h.who===n)).map(([k])=>k); const decs=Object.entries(DECISIONS).filter(([,d])=>d.author===n); const mine=n===persona;
+      return `<div class="rec" data-run="get_summary" data-arg="what has ${n} been working on"><div class="toprow"><span class="hand">${seal(n)} <h3 style="margin:0">${n}</h3></span><span class="where">${mine?n+"/me.md":"central/people/"+n+".md"}</span></div>
+      <ul class="hist"><li><span class="d">feat</span><span class="x">${feats.join(", ")||"—"}</span></li>${decs.map(([,d])=>`<li><span class="d">why</span><span class="x">${esc(d.title)}</span></li>`).join("")}</ul>
+      ${mine?`<div class="priv"><div class="h">your private note<span class="lk">🔓</span></div><p>${esc(PRIVATE_ME[n])}</p></div>`:`<div class="priv locked"><div class="h">private note<span class="lk">🔒</span></div><p>Only ${n} can read ${n}'s vault.</p></div>`}</div>`; }).join("")}`,
+  activity: () => { const c={}; EVENTS.forEach(([n])=>c[n]=(c[n]||0)+1); const bars=[3,5,2,6,4,7,5,8,6,9,7,10];
+    return `<div class="vh"><h1>Activity</h1><p>The typed event stream behind <span class="mono">who_knows</span> and gap detection — categories and counts only, never raw text.</p></div>
+    <div class="rec" style="border-top:0"><div class="toprow"><h3 style="font-size:17px">This week</h3><span class="where">event_store: sqlite</span></div><div class="spark">${bars.map(b=>`<i style="height:${b/10*100}%"></i>`).join("")}</div></div>
+    <div class="rec"><div class="toprow"><h3 style="font-size:17px">By type</h3><span class="kind">${EVENTS.length} events, 2 people</span></div>
+      <ul class="hist">${Object.entries(c).sort((a,b)=>b[1]-a[1]).map(([n,k])=>`<li><span class="d mono" style="color:var(--text)">${n}</span><span class="x mono" style="color:var(--faint)">×${k}</span></li>`).join("")}</ul></div>`; },
+};
+
+function renderPersona(){ document.getElementById("persona").innerHTML =
+  [...Object.keys(PEOPLE),"anon"].map(n=>`<button class="seal ${n===persona?'on':''}" data-p="${n}" style="background:${n==='anon'?'var(--faint)':PEOPLE[n].color}" title="${n==='anon'?'guest':n}">${n==='anon'?'?':n[0].toUpperCase()}</button>`).join(""); }
+function render(){ renderStage(); fresh=false; document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.view===view));
+  renderPersona(); const i=document.getElementById("askInput"); if(i && view==="ask") i.focus(); }
+
+function pingPerson(w,f){ msgs.push({q:`Route a question on ${f} to ${w}`,tool:"ask_person",as:persona,lat:rnd(3,12),
+  res:{kind:"custom",citations:["event_store:sqlite"],html:`<p class="prose lead">Drafted for <span class="hand">${seal(w)} <b class="by">${w}</b></span> <span class="mono" style="font-size:12px;color:var(--faint)">${PEOPLE[w].contact}</span></p>
+  <div class="priv"><p>“Hey ${w} — quick one on <b>${f}</b>, you're closest to it. Grab me in standup?”</p></div>
+  <p class="prose" style="color:var(--text-soft);font-size:14px;margin-top:10px">Sends via voice / standup and records a <span class="mono" style="font-size:12px">QuestionAsked</span> event.</p>`}}); fresh=true; render(); }
+function logGap(){ msgs.push({q:"Log this as a documentation gap",tool:"log_unanswered",as:persona,lat:rnd(3,10),
+  res:{kind:"custom",citations:["event_store:sqlite"],html:`<p class="prose lead">Logged. ✓</p><p class="prose" style="color:var(--text-soft)">Wrote <span class="mono" style="font-size:12px">QuestionAsked</span> + <span class="mono" style="font-size:12px">AnswerFound(false)</span> — it'll surface to whoever owns this next.</p>`}}); fresh=true; render(); }
+
+document.addEventListener("click", e=>{
+  const rec=e.target.closest(".rec[data-run]"); if(rec){ activeTool=rec.dataset.run; ask(rec.dataset.arg); return; }
+  const nv=e.target.closest("#nav button"); if(nv){ view=nv.dataset.view; render(); return; }
+  const p=e.target.closest(".persona .seal"); if(p){ persona=p.dataset.p; render(); return; }
+  const st=e.target.closest(".starter"); if(st){ ask(st.dataset.q); return; }
+  if(e.target.closest("#askGo")){ ask(document.getElementById("askInput").value); return; }
+});
+document.addEventListener("keydown", e=>{
+  if(e.key==="Enter" && e.target.id==="askInput"){ ask(e.target.value); return; }
+  if(e.key==="/" && !/^(input|textarea)$/i.test(e.target.tagName)){ e.preventDefault(); if(view!=="ask") { view="ask"; render(); } const i=document.getElementById("askInput"); if(i) i.focus(); }
+});
+document.getElementById("themeBtn").addEventListener("click", ()=>{ const cur=document.documentElement.getAttribute("data-theme")||"dark"; document.documentElement.setAttribute("data-theme", cur==="dark"?"light":"dark"); });
+document.documentElement.setAttribute("data-theme","dark");
+render();
+</script>
