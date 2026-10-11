@@ -1,5 +1,5 @@
 // @sitdown/mcp — D. Tool implementations shared by the stdio and http entry points.
-// In: vault at vault_path; event store (Keewano or SQLite).
+// In: central vault (shared) + caller's personal vault (private); event store (Keewano or SQLite).
 // Every response cites note paths and source session/commit IDs.
 // Build order (PRD-D): get_brief, search_docs, get_summary first; then the rest.
 import path from "node:path";
@@ -7,13 +7,16 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import type { ResolvedConfig } from "./config.js";
 import type { EventStore } from "./events/index.js";
 import { searchNotes } from "./search.js";
-import { type Note, noteFeature, personVisible, readNotes } from "./vault.js";
+import { type Note, noteFeature, readNotes } from "./vault.js";
 
 export interface Ctx {
-  vaultPath: string;
+  /** Central (team) vault — all shared queries read from here. */
+  centralVault: string;
+  /** Resolve a person's own vault (their private me.md + daily log). */
+  personVaultFor: (author: string) => string;
   cfg: ResolvedConfig;
   events: EventStore;
-  /** used to gate `private: true` person notes */
+  /** author slug of the caller; their own personal vault is the only private note we read */
   requester?: string;
 }
 
@@ -110,7 +113,7 @@ export async function get_brief(
     return { found: false, answer: "Pass a feature or a branch to brief on.", feature: null };
   }
 
-  const decisions = readNotes(ctx.vaultPath, "decision")
+  const decisions = readNotes(ctx.centralVault, "decision")
     .filter((n) => noteFeature(n) === feature)
     .slice(0, 5)
     .map(parseDecision);
@@ -120,7 +123,7 @@ export async function get_brief(
     ctx.events.authorsRanked(feature, ctx.cfg.people),
   ]);
 
-  const featureNote = readNotes(ctx.vaultPath, "feature").find((n) => n.name === feature);
+  const featureNote = readNotes(ctx.centralVault, "feature").find((n) => n.name === feature);
   const citations = dedupe([
     featureNote?.relPath ?? "",
     ...decisions.map((d) => d.path),
@@ -143,7 +146,7 @@ export async function get_brief(
 
 export async function search_docs(input: { query: string; requester?: string }, ctx: Ctx) {
   const requester = input.requester ?? ctx.requester;
-  const results = searchNotes(ctx.vaultPath, input.query, requester);
+  const results = searchNotes(ctx.centralVault, input.query, requester);
   return {
     found: results.length > 0,
     answer: results.length > 0 ? undefined : IDK,
@@ -166,7 +169,7 @@ export async function get_summary(
   const from = input.from ?? "0000-00-00";
   const to = input.to ?? "9999-99-99";
 
-  const dailies = readNotes(ctx.vaultPath, "daily").filter((n) => {
+  const dailies = readNotes(ctx.centralVault, "daily").filter((n) => {
     const d = (typeof n.frontmatter.date === "string" && n.frontmatter.date) || n.name;
     return d >= from && d <= to;
   });
@@ -189,13 +192,14 @@ export async function get_summary(
     }
   }
 
-  // Enrich with each person's own private note only when the requester is that author.
-  for (const note of readNotes(ctx.vaultPath, "person")) {
-    const author = typeof note.frontmatter.author === "string" ? note.frontmatter.author : note.name;
-    if (input.author && author !== input.author) continue;
-    if (!personVisible(note, requester)) continue;
-    const entry = acc.get(author);
-    if (entry) entry.sources.push(note.relPath);
+  // Private enrichment: only the CALLER's own personal vault (me.md) is ever read. Other people's
+  // private notes live in vaults we never touch, so privacy is structural, not a filter.
+  if (requester && (!input.author || input.author === requester)) {
+    const meAbs = path.join(ctx.personVaultFor(requester), "me.md");
+    if (existsSync(meAbs)) {
+      const entry = acc.get(requester);
+      if (entry) entry.sources.push(`${requester}/me.md`);
+    }
   }
 
   const summaries = [...acc.entries()].map(([author, { items, sources }]) => ({
@@ -229,7 +233,7 @@ function spokenSummary(author: string, items: string[]): string {
 // ---------------------------------------------------------------------------
 
 export async function get_decision(input: { slug?: string; topic?: string }, ctx: Ctx) {
-  const notes = readNotes(ctx.vaultPath, "decision");
+  const notes = readNotes(ctx.centralVault, "decision");
 
   let match: Note | undefined;
   if (input.slug) {
@@ -260,7 +264,7 @@ export async function get_decision(input: { slug?: string; topic?: string }, ctx
 
 export async function who_knows(input: { feature: string }, ctx: Ctx) {
   const ranked = await ctx.events.authorsRanked(input.feature, ctx.cfg.people);
-  const featureNote = readNotes(ctx.vaultPath, "feature").find((n) => n.name === input.feature);
+  const featureNote = readNotes(ctx.centralVault, "feature").find((n) => n.name === input.feature);
   return {
     found: ranked.length > 0,
     answer: ranked.length > 0 ? undefined : IDK,
@@ -285,7 +289,7 @@ export async function log_unanswered(input: { topic: string; asked_by?: string }
   // Ranking matches features by exact name, but a free-text topic ("auth token expiry") rarely
   // equals a feature. Resolve it to a known feature mentioned in the topic before ranking so a
   // clear owner still gets pinged.
-  const features = readNotes(ctx.vaultPath, "feature").map((n) => n.name);
+  const features = readNotes(ctx.centralVault, "feature").map((n) => n.name);
   const topicLc = input.topic.toLowerCase();
   const resolvedFeature =
     features.find((f) => topicLc.includes(f.toLowerCase())) ??
@@ -334,11 +338,11 @@ export async function record_decision(
       author,
       date,
       feature: input.feature,
-      vaultPath: ctx.vaultPath,
+      vaultPath: ctx.centralVault,
     });
   } catch {
     // Fallback until C ships writeDecision. Writes the exact contract note format.
-    notePath = writeDecisionFallback(ctx.vaultPath, decision, { author, date, feature: input.feature });
+    notePath = writeDecisionFallback(ctx.centralVault, decision, { author, date, feature: input.feature });
     usedFallback = true;
   }
 
@@ -348,7 +352,7 @@ export async function record_decision(
     { name: "DecisionRecorded", value: slug },
   ]);
 
-  const relPath = path.relative(ctx.vaultPath, notePath).split(path.sep).join("/");
+  const relPath = path.relative(ctx.centralVault, notePath).split(path.sep).join("/");
   return { recorded: true, path: relPath, slug, used_fallback: usedFallback, citations: [relPath] };
 }
 

@@ -13,7 +13,11 @@ export const VERSION = "0.1.0";
 function makeCtx(): { cfg: ResolvedConfig; events: EventStore; base: Omit<Ctx, "requester"> } {
   const cfg = loadConfig();
   const events = createEventStore(cfg);
-  return { cfg, events, base: { vaultPath: cfg.vaultPath, cfg, events } };
+  return {
+    cfg,
+    events,
+    base: { centralVault: cfg.centralVault, personVaultFor: cfg.personVault, cfg, events },
+  };
 }
 
 /** Wrap a tool's structured result as an MCP CallToolResult (text + structuredContent). */
@@ -30,9 +34,9 @@ export function createServer(): McpServer {
   const ctx: Ctx = { ...base, requester: defaultRequester };
 
   if (cfg.usingFixtures) {
-    console.error(`[sitdown-mcp] using fixtures vault: ${cfg.vaultPath}`);
+    console.error(`[sitdown-mcp] using fixtures vault: ${cfg.centralVault}`);
   }
-  console.error(`[sitdown-mcp] vault=${cfg.vaultPath} events=${events.kind}`);
+  console.error(`[sitdown-mcp] central=${cfg.centralVault} vaults_root=${cfg.vaultsRoot} events=${events.kind}`);
 
   const server = new McpServer(
     { name: "sitdown", version: VERSION },

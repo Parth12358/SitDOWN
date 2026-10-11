@@ -12,7 +12,7 @@ One MCP server that lets coding agents, the voice assistant, and evals query the
 
 ## Inputs and outputs
 
-- **In:** the vault at `vault_path`; the event store (Keewano or SQLite).
+- **In:** the central vault (shared queries) and each person's personal vault (only the caller's own, for private notes); the event store (Keewano or SQLite).
 - **Out:** MCP tools over stdio (coding agents) and HTTP (voice assistant and evals). Tool list in `OVERALL_PLAN.md`.
 - **Until C delivers:** point at `contracts/fixtures/vault/` and `contracts/fixtures/events.sqlite`.
 

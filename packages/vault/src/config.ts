@@ -6,8 +6,14 @@ import type { Config, EventStore } from "@sitdown/contracts";
 import { appHome, resolvePath } from "./paths.js";
 
 export interface ResolvedConfig {
-  /** Absolute path to the Markdown vault C writes. */
-  vaultPath: string;
+  /** Base dir holding the central vault + one vault per person. */
+  vaultsRoot: string;
+  /** Absolute path to the central (team) vault C writes shared notes into. */
+  centralVault: string;
+  /** Absolute path to a person's own vault (daily log + private me.md). */
+  personVault: (author: string) => string;
+  /** Obsidian vault name used for cross-vault links from personal notes into central. */
+  centralName: string;
   /** Which event backend to use. */
   eventStore: EventStore;
   /** Absolute path to the SQLite event file (sqlite backend only). */
@@ -21,9 +27,13 @@ export interface ResolvedConfig {
 }
 
 const DEFAULTS = {
-  vault_path: "~/vault",
   event_store: "sqlite" as EventStore,
 };
+
+/** Filesystem-safe folder name for a person vault. */
+function slug(author: string): string {
+  return author.replace(/[^A-Za-z0-9._-]/g, "_") || "unknown";
+}
 
 function readConfigFile(): Partial<Config> {
   const configPath = process.env.SITDOWN_CONFIG
@@ -40,15 +50,20 @@ function readConfigFile(): Partial<Config> {
 /**
  * Resolve the effective config. Precedence: explicit env override > config.json > default.
  * Env overrides (useful for fixtures and tests):
- *   SITDOWN_VAULT, SITDOWN_EVENTS_DB, SITDOWN_PROCESSED, SITDOWN_EVENT_STORE, SITDOWN_CONFIG, SITDOWN_HOME
+ *   SITDOWN_VAULTS_ROOT, SITDOWN_CENTRAL_VAULT, SITDOWN_EVENTS_DB, SITDOWN_PROCESSED,
+ *   SITDOWN_EVENT_STORE, SITDOWN_CONFIG, SITDOWN_HOME
  */
 export function loadConfig(): ResolvedConfig {
   const home = appHome();
   const file = readConfigFile();
 
-  const vaultPath = resolvePath(
-    process.env.SITDOWN_VAULT || file.vault_path || DEFAULTS.vault_path,
+  const vaultsRoot = resolvePath(
+    process.env.SITDOWN_VAULTS_ROOT || file.vaults_root || path.join(home, "vaults"),
   );
+  const centralVault = resolvePath(
+    process.env.SITDOWN_CENTRAL_VAULT || file.central_vault || path.join(vaultsRoot, "central"),
+  );
+  const personVault = (author: string): string => path.join(vaultsRoot, slug(author));
   const eventStore = (process.env.SITDOWN_EVENT_STORE ||
     file.event_store ||
     DEFAULTS.event_store) as EventStore;
@@ -65,7 +80,10 @@ export function loadConfig(): ResolvedConfig {
   const stateDir = path.join(home, "state");
 
   return {
-    vaultPath,
+    vaultsRoot,
+    centralVault,
+    personVault,
+    centralName: path.basename(centralVault),
     eventStore,
     eventsDbPath,
     processedDir,

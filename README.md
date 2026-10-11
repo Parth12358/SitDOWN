@@ -1,6 +1,6 @@
 # SitDOWN: Automated Agent Documentation
 
-`SitDOWN` turns every coding-agent session and commit into living, linked documentation that people and agents can query. Docs are plain Markdown in a vault you own (Obsidian-compatible). A voice assistant that answers questions in standups is a secondary way to read them.
+`SitDOWN` turns every coding-agent session and commit into living, linked documentation that people and agents can query. Docs are plain Markdown in vaults you own (Obsidian-compatible): **one personal vault per person** (their own log + private notes) plus a **shared central vault** for team features and decisions — so nobody else's work ever lands in your personal space. A voice assistant that answers questions in standups is a secondary way to read them.
 
 Built at SpeedHacks (SF Tech Week, Oct 11 2026). Submission due 5 PM PT.
 
@@ -44,7 +44,7 @@ scripts/             demo-reset, backfill (F)
 
 ```bash
 pnpm install
-cp config.example.json ~/.sitdown/config.json   # set vault_path, event_store, llm
+cp config.example.json ~/.sitdown/config.json   # set vaults_root, central_vault, event_store, llm
 pnpm --filter capture run install-hooks        # wires agent + git hooks (local only)
 pnpm --filter mcp run start                    # MCP server
 pnpm --filter evals run eval                   # score the docs
@@ -86,7 +86,7 @@ Honest status for judges.
 
 **Not done:** Sparta rubric (`packages/evals/SPARTA.md`) and Alike evidence (`demo/ALIKE.md`) are empty pending onsite info; backup video + HackerSquad submission are process steps, not code.
 
-Paths: home `~/.sitdown/` holds inbox/processed/events; the Obsidian **vault is separate** (`vault_path`, default `~/vault`). `demo-reset` uses an isolated `~/.sitdown/vault` so it never touches a real vault.
+Paths: home `~/.sitdown/` holds inbox/processed/events; the Obsidian **vaults are separate** — `vaults_root` (default `~/sitdown/vaults`) holds the `central/` vault plus one `<person>/` vault each. `demo-reset` uses an isolated `~/.sitdown/vaults` so it never touches a real vault. (Personal→central links use `obsidian://` URLs, since `[[wikilinks]]` don't span separate Obsidian vaults.)
 
 ## Credits
 

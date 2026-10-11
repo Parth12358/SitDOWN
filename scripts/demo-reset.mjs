@@ -2,13 +2,15 @@
 // demo-reset — PRD-F. Node only; Linux/Mac/Windows (path.join + os.homedir()).
 //
 // Resets an isolated demo home under ~/.sitdown to a known state, then replays today's sessions
-// (the contract fixture Digests) through C (@sitdown/vault) to regenerate the vault + event store.
-// Deterministic and offline — no LLM, no network. Safe by construction: it only touches a vault
-// under ~/.sitdown unless you explicitly pass --vault <path> --force.
+// (the contract fixture Digests) through C (@sitdown/vault) to regenerate the split vaults:
+//   <vaults_root>/central/   shared: features, decisions, team daily, people index
+//   <vaults_root>/<person>/  per person: their daily log + private me.md
+// Deterministic and offline — no LLM, no network. Safe by construction: it only touches vaults
+// under ~/.sitdown unless you pass --vaults-root <path> --force.
 //
 // Usage:
-//   node scripts/demo-reset.mjs            # reset ~/.sitdown/{vault,events.sqlite,processed}
-//   node scripts/demo-reset.mjs --vault /path/to/vault --force   # target a real vault (destructive)
+//   node scripts/demo-reset.mjs
+//   node scripts/demo-reset.mjs --vaults-root /path/to/vaults --force
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,10 +23,10 @@ const FIXTURE_PROCESSED = path.join(repoRoot, "contracts", "fixtures", "processe
 const VAULT_BIN = path.join(repoRoot, "packages", "vault", "dist", "bin", "process.js");
 
 function parseArgs(argv) {
-  const o = { force: false, vault: null };
+  const o = { force: false, vaultsRoot: null };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--force") o.force = true;
-    else if (argv[i] === "--vault") o.vault = argv[++i];
+    else if (argv[i] === "--vaults-root") o.vaultsRoot = argv[++i];
   }
   return o;
 }
@@ -37,33 +39,34 @@ function isUnder(child, parent) {
 function main() {
   const opts = parseArgs(process.argv.slice(2));
   const HOME = process.env.SITDOWN_HOME ?? path.join(os.homedir(), ".sitdown");
-  const vault = opts.vault ? path.resolve(opts.vault) : path.join(HOME, "vault");
+  const vaultsRoot = opts.vaultsRoot ? path.resolve(opts.vaultsRoot) : path.join(HOME, "vaults");
+  const central = path.join(vaultsRoot, "central");
   const eventsDb = path.join(HOME, "events.sqlite");
   const processed = path.join(HOME, "processed");
 
   console.log(`[demo-reset] home=${HOME}`);
-  console.log(`[demo-reset] vault=${vault}`);
+  console.log(`[demo-reset] vaults_root=${vaultsRoot}`);
 
   if (!existsSync(VAULT_BIN)) {
     console.error(`[demo-reset] ${VAULT_BIN} not found — run \`pnpm --filter @sitdown/vault build\` first.`);
     process.exit(1);
   }
 
-  // Safety: refuse to wipe a non-empty vault outside ~/.sitdown without --force.
-  const outsideHome = !isUnder(vault, HOME);
-  const nonEmpty = existsSync(vault) && readdirSync(vault).length > 0;
+  // Safety: refuse to wipe a non-empty vaults root outside ~/.sitdown without --force.
+  const outsideHome = !isUnder(vaultsRoot, HOME);
+  const nonEmpty = existsSync(vaultsRoot) && readdirSync(vaultsRoot).length > 0;
   if (outsideHome && nonEmpty && !opts.force) {
-    console.error(`[demo-reset] refusing to reset a non-empty vault outside ${HOME}.`);
+    console.error(`[demo-reset] refusing to reset a non-empty vaults root outside ${HOME}.`);
     console.error("[demo-reset] re-run with --force if you really mean to wipe it.");
     process.exit(1);
   }
 
   // 1. Reset to a clean slate.
-  for (const p of [vault, processed]) rmSync(p, { recursive: true, force: true });
+  for (const p of [vaultsRoot, processed]) rmSync(p, { recursive: true, force: true });
   rmSync(eventsDb, { force: true });
-  mkdirSync(vault, { recursive: true });
+  mkdirSync(vaultsRoot, { recursive: true });
   mkdirSync(processed, { recursive: true });
-  console.log("[demo-reset] cleared vault, processed/, events.sqlite");
+  console.log("[demo-reset] cleared vaults, processed/, events.sqlite");
 
   // 2. Seed today's sessions: the known fixture Digests (already summarized by B).
   let seeded = 0;
@@ -73,13 +76,14 @@ function main() {
   }
   console.log(`[demo-reset] seeded ${seeded} digest(s) into ${processed}`);
 
-  // 3. Replay through C -> vault + events.
+  // 3. Replay through C -> central + per-person vaults + events.
   const r = spawnSync(process.execPath, [VAULT_BIN, "--all"], {
     env: {
       ...process.env,
       SITDOWN_HOME: HOME,
       SITDOWN_PROCESSED: processed,
-      SITDOWN_VAULT: vault,
+      SITDOWN_VAULTS_ROOT: vaultsRoot,
+      SITDOWN_CENTRAL_VAULT: central,
       SITDOWN_EVENTS_DB: eventsDb,
       SITDOWN_EVENT_STORE: "sqlite",
     },
@@ -90,12 +94,12 @@ function main() {
     process.exit(r.status ?? 1);
   }
 
-  const notes = existsSync(vault)
-    ? readdirSync(vault, { recursive: true }).filter((n) => String(n).endsWith(".md")).length
+  const notes = existsSync(vaultsRoot)
+    ? readdirSync(vaultsRoot, { recursive: true }).filter((n) => String(n).endsWith(".md")).length
     : 0;
-  console.log(`\n[demo-reset] done — ${notes} note(s) in the vault.`);
+  console.log(`\n[demo-reset] done — ${notes} note(s) across central + per-person vaults.`);
   console.log("[demo-reset] next:");
-  console.log(`  SITDOWN_VAULT_PATH=${vault} SITDOWN_EVENTS_DB=${eventsDb} pnpm --filter @sitdown/mcp start:http`);
+  console.log(`  SITDOWN_CENTRAL_VAULT=${central} SITDOWN_VAULTS_ROOT=${vaultsRoot} SITDOWN_EVENTS_DB=${eventsDb} pnpm --filter @sitdown/mcp start:http`);
   console.log("  pnpm --filter @sitdown/evals run eval");
 }
 

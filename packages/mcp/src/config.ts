@@ -19,7 +19,12 @@ export function expandHome(p: string): string {
 }
 
 export interface ResolvedConfig {
-  vaultPath: string;
+  /** Central (team) vault: features, decisions, team daily, shareable people index. */
+  centralVault: string;
+  /** Base dir holding per-person vaults; a person's vault is <vaultsRoot>/<author>. */
+  vaultsRoot: string;
+  /** Resolve a person's own vault (their daily log + private me.md). */
+  personVault: (author: string) => string;
   eventStore: EventStore;
   /** Absolute path to the SQLite event store (sqlite backend only). */
   eventsDbPath: string;
@@ -27,6 +32,10 @@ export interface ResolvedConfig {
   people: Record<string, string[]>;
   /** true when falling back to contracts/fixtures (dev / standalone). */
   usingFixtures: boolean;
+}
+
+function personSlug(author: string): string {
+  return author.replace(/[^A-Za-z0-9._-]/g, "_") || "unknown";
 }
 
 /** Path to ~/.sitdown/config.json (honoring SITDOWN_HOME). */
@@ -53,17 +62,27 @@ export function loadConfig(): ResolvedConfig {
 
   const home = process.env.SITDOWN_HOME ?? path.join(os.homedir(), ".sitdown");
 
-  // Vault path: env > config > fixtures.
-  let vaultPath = process.env.SITDOWN_VAULT_PATH
-    ? expandHome(process.env.SITDOWN_VAULT_PATH)
-    : raw.vault_path
-      ? expandHome(raw.vault_path)
-      : "";
+  // Per-person + central vault resolution. Precedence: env > config > fixtures.
+  const vaultsRoot = process.env.SITDOWN_VAULTS_ROOT
+    ? expandHome(process.env.SITDOWN_VAULTS_ROOT)
+    : raw.vaults_root
+      ? expandHome(raw.vaults_root)
+      : path.join(home, "vaults");
+  let centralVault = process.env.SITDOWN_CENTRAL_VAULT
+    ? expandHome(process.env.SITDOWN_CENTRAL_VAULT)
+    : process.env.SITDOWN_VAULT_PATH // legacy alias
+      ? expandHome(process.env.SITDOWN_VAULT_PATH)
+      : raw.central_vault
+        ? expandHome(raw.central_vault)
+        : path.join(vaultsRoot, "central");
+  let personRoot = vaultsRoot;
   let usingFixtures = false;
-  if (!vaultPath || !existsSync(vaultPath)) {
-    vaultPath = path.join(fixturesDir, "vault");
+  if (!existsSync(centralVault)) {
+    centralVault = path.join(fixturesDir, "vault", "central");
+    personRoot = path.join(fixturesDir, "vault");
     usingFixtures = true;
   }
+  const personVault = (author: string): string => path.join(personRoot, personSlug(author));
 
   const eventStore: EventStore = raw.event_store ?? "sqlite";
 
@@ -76,7 +95,9 @@ export function loadConfig(): ResolvedConfig {
   }
 
   return {
-    vaultPath,
+    centralVault,
+    vaultsRoot,
+    personVault,
     eventStore,
     eventsDbPath,
     people: raw.people ?? { sam: ["sam@example.com"], alex: ["alex@example.com"] },

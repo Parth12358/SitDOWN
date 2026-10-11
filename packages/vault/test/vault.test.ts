@@ -6,15 +6,21 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { collectAffected, loadDigests, writeBatch } from "../dist/index.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const fixturesVault = path.resolve(here, "../../../contracts/fixtures/vault");
+const fixturesVault = path.resolve(here, "../../../contracts/fixtures/vault/central");
 const processedDir = path.resolve(here, "../../../contracts/fixtures/processed");
 
-let vault: string;
+let root: string;
+let vault: string; // the central vault
 
 beforeAll(async () => {
-  vault = await mkdtemp(path.join(tmpdir(), "sitdown-vault-"));
+  root = await mkdtemp(path.join(tmpdir(), "sitdown-vault-"));
+  vault = path.join(root, "central");
   const digests = await loadDigests(processedDir);
-  await writeBatch(digests, collectAffected(digests), vault);
+  await writeBatch(digests, collectAffected(digests), {
+    central: vault,
+    personVaultFor: (author) => path.join(root, author),
+    centralName: "central",
+  });
 });
 
 afterAll(async () => {
@@ -38,9 +44,23 @@ describe("vault generation against fixtures", () => {
     });
   }
 
-  it("person notes are private by default", async () => {
+  it("central people index is shareable (private: false)", async () => {
     const sam = await readFile(path.join(vault, "people/sam.md"), "utf8");
-    expect(sam).toMatch(/^private: true$/m);
+    expect(sam).toMatch(/^private: false$/m);
+  });
+
+  it("each person's own vault holds a private me.md (not central)", async () => {
+    const me = await readFile(path.join(root, "sam/me.md"), "utf8");
+    expect(me).toMatch(/^private: true$/m);
+    expect(me).toContain("## Contributions");
+    // cross-vault references into central use obsidian:// links (wikilinks don't span vaults)
+    expect(me).toContain("obsidian://open?vault=central&file=decisions%2F2026-10-11-refund-idempotency");
+  });
+
+  it("personal daily contains only that person's activity", async () => {
+    const samDaily = await readFile(path.join(root, "sam/daily/2026-10-11.md"), "utf8");
+    expect(samDaily).toContain("Added refund endpoint");
+    expect(samDaily).not.toContain("JWT refresh"); // that's alex's work -> never in sam's vault
   });
 
   it("feature history is newest first (commit after same-day session)", async () => {
@@ -72,7 +92,11 @@ describe("re-run safety", () => {
 
     // Re-run the batch.
     const digests = await loadDigests(processedDir);
-    await writeBatch(digests, collectAffected(digests), vault);
+    await writeBatch(digests, collectAffected(digests), {
+      central: vault,
+      personVaultFor: (author) => path.join(root, author),
+      centralName: "central",
+    });
 
     const after = await readFile(abs, "utf8");
     expect(after).toContain("My hand-written roadmap note.");

@@ -5,9 +5,10 @@
   "description": "~/.sitdown/config.json. Keys come from env vars, never here.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["vault_path", "event_store", "llm"],
+  "required": ["event_store", "llm"],
   "properties": {
-    "vault_path": { "type": "string", "description": "~-prefixed or absolute path to the Obsidian vault." },
+    "vaults_root": { "type": "string", "description": "Base dir for the central vault + one vault per person. Default ~/.sitdown/vaults; each person's vault is <vaults_root>/<author>." },
+    "central_vault": { "type": "string", "description": "The central (team) vault. Default <vaults_root>/central." },
     "event_store": { "type": "string", "enum": ["keewano", "sqlite"] },
     "llm": { "type": "string", "enum": ["claude_cli", "cloud", "ollama"] },
     "people": {

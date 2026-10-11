@@ -13,7 +13,9 @@ Turn Digests into an Obsidian-compatible Markdown vault people own, plus a strea
 ## Inputs and outputs
 
 - **In:** `~/.sitdown/processed/*.json` (Digest).
-- **Out:** Markdown notes in `vault_path`; events in Keewano or SQLite (per `event_store` in config). Formats in `OVERALL_PLAN.md`.
+- **Out:** Markdown notes split across a shared **central** vault and one **personal** vault per person (both under `vaults_root`); events in Keewano or SQLite (per `event_store` in config). Formats in `OVERALL_PLAN.md`.
+  - **Central** (`<vaults_root>/central/`): `features/`, `decisions/`, team `daily/` (all people), and a shareable `people/<author>.md` index (`private: false`).
+  - **Personal** (`<vaults_root>/<author>/`): that author's own `daily/<date>.md` + a private `me.md` (`private: true`). Only their own activity — never anyone else's. Cross-references into central use `obsidian://` links.
 - **Until B delivers:** use `contracts/fixtures/processed/`.
 
 ## Requirements

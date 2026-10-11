@@ -2,7 +2,7 @@
 // C's main entry: read Digests from processed/, selectively regenerate the vault, emit the
 // typed events, commit the vault, and record state. One-shot by default; `--watch` polls.
 //
-// Env overrides (see config.ts): SITDOWN_PROCESSED, SITDOWN_VAULT, SITDOWN_EVENTS_DB,
+// Env overrides (see config.ts): SITDOWN_PROCESSED, SITDOWN_VAULTS_ROOT, SITDOWN_CENTRAL_VAULT, SITDOWN_EVENTS_DB,
 // SITDOWN_EVENT_STORE, SITDOWN_HOME, SITDOWN_CONFIG.
 // Flags: --watch[=ms]  poll instead of exiting; --all  reprocess every Digest.
 import { loadConfig } from "../config.js";
@@ -50,9 +50,14 @@ async function runOnce(all: boolean): Promise<number> {
     return 0;
   }
 
-  // 1. Regenerate exactly the affected notes from the full digest set.
+  // 1. Regenerate exactly the affected notes from the full digest set, split across the central
+  //    vault (shared) and each person's own vault (private).
   const affected = collectAffected(changed);
-  const written = await writeBatch(digests, affected, cfg.vaultPath);
+  const written = await writeBatch(digests, affected, {
+    central: cfg.centralVault,
+    personVaultFor: cfg.personVault,
+    centralName: cfg.centralName,
+  });
   console.log(`[vault] wrote ${written.length} note(s) for ${changed.length} changed digest(s)`);
 
   // 2. Emit events (chronological), FeatureTouched already ordered first per digest.
@@ -70,9 +75,13 @@ async function runOnce(all: boolean): Promise<number> {
   await sink.flush?.();
   console.log(`[vault] emitted ${emitted} event(s) to ${cfg.eventStore} (${toEmit.length} new source(s))`);
 
-  // 3. Commit the vault naming the sources.
-  const committed = await commitAll(cfg.vaultPath, batchMessage(changed.map((d) => d.source)));
-  if (committed) console.log("[vault] committed vault");
+  // 3. Commit each touched vault (central + every affected person's) naming the sources.
+  const msg = batchMessage(changed.map((d) => d.source));
+  const vaults = new Set<string>([cfg.centralVault]);
+  for (const author of new Set(changed.map((d) => d.author))) vaults.add(cfg.personVault(author));
+  let committedCount = 0;
+  for (const v of vaults) if (await commitAll(v, msg)) committedCount++;
+  if (committedCount) console.log(`[vault] committed ${committedCount} vault(s)`);
 
   // 4. Record state: hashes for all changed notes, plus the sources whose events we just emitted.
   await saveState(cfg.stateDir, recordDigests(state, changed, toEmit));

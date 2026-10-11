@@ -67,7 +67,7 @@ async function loadConfig(configPath: string): Promise<Config> {
   try {
     return JSON.parse(await readFile(configPath, "utf8")) as Config;
   } catch {
-    return { vault_path: "~/vault", event_store: "sqlite", llm: "claude_cli" };
+    return { event_store: "sqlite", llm: "claude_cli" };
   }
 }
 

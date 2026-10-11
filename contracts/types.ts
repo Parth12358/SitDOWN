@@ -90,7 +90,13 @@ export type LlmBackend = "claude_cli" | "cloud" | "ollama";
 
 /** ~/.sitdown/config.json */
 export interface Config {
-  vault_path: string;
+  /**
+   * Base directory holding the central vault and one vault per person.
+   * Default: `~/.sitdown/vaults`. Each person's vault is `<vaults_root>/<author>`.
+   */
+  vaults_root?: string;
+  /** The central (team) vault. Default: `<vaults_root>/central`. */
+  central_vault?: string;
   event_store: EventStore;
   llm: LlmBackend;
   people?: Record<string, string[]>;

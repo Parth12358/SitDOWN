@@ -1,7 +1,7 @@
 ---
 type: person
 author: sam
-private: true
+private: false
 updated: 2026-10-11
 ---
 # sam

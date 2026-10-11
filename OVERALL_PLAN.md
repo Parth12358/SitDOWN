@@ -49,7 +49,8 @@ Files on disk are the interface between packages.
 ~/.sitdown/inbox/sessions/   A writes SessionRecord JSON   -> B reads
 ~/.sitdown/inbox/commits/    A writes CommitRecord JSON    -> B reads
 ~/.sitdown/processed/        B writes Digest JSON          -> C reads
-<vault_path>/              C writes Markdown notes       -> D reads
+<vaults_root>/central/     C writes shared notes         -> D reads
+<vaults_root>/<person>/    C writes personal notes       -> D reads (owner only)
 <event store>              C writes events               -> D reads
 MCP server (stdio + HTTP)  D serves tools                -> coding agents, E, F
 ```
@@ -118,17 +119,23 @@ Our home directory is `~/.sitdown/`, never `~/.alike/`, so we run beside the rea
 
 Attribution labels: `human`, `autocomplete`, `agent`, `agent_edited`, `human_refactored_by_agent`, `pasted`. Recorded at the source, never guessed from code style.
 
-### Vault (C writes)
+### Vaults (C writes)
+
+One shared **central** vault plus one **personal** vault per person, all under `vaults_root`. A person's own work never appears in anyone else's vault.
 
 ```text
-<vault_path>/
-  daily/2026-10-11.md
-  features/payments.md
-  decisions/2026-10-11-refund-idempotency.md
-  people/sam.md
+<vaults_root>/
+  central/                              # shared: team source of truth
+    daily/2026-10-11.md                 #   all people, one section each
+    features/payments.md
+    decisions/2026-10-11-refund-idempotency.md
+    people/sam.md                       #   shareable index (private: false)
+  sam/                                  # sam's own vault (private)
+    daily/2026-10-11.md                 #   sam's activity only
+    me.md                               #   private person note (private: true)
 ```
 
-Note format. The tool writes only between the markers; everything outside them is the human's and is never changed.
+Personal notes reference central with `obsidian://` links (wikilinks don't span separate Obsidian vaults). Note format — the tool writes only between the markers; everything outside them is the human's and is never changed.
 
 ```markdown
 ---
@@ -185,7 +192,8 @@ Every answer cites its note path and source session or commit.
 
 ```json
 {
-  "vault_path": "~/vault",
+  "vaults_root": "~/sitdown/vaults",
+  "central_vault": "~/sitdown/vaults/central",
   "event_store": "keewano",
   "llm": "cloud",
   "people": { "sam": ["sam@example.com"] }

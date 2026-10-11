@@ -1,5 +1,6 @@
 {
-  "vault_path": "~/vault",
+  "vaults_root": "~/sitdown/vaults",
+  "central_vault": "~/sitdown/vaults/central",
   "event_store": "sqlite",
   "llm": "claude_cli",
   "people": {

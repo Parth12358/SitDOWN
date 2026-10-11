@@ -7,7 +7,7 @@ of typed events the product queries.
 
 ## I/O (contract)
 - **In:** `~/.sitdown/processed/*.json` (Digest).
-- **Out:** notes in `vault_path` (`daily/`, `features/`, `decisions/`, `people/`) + events in Keewano or SQLite.
+- **Out:** notes split across a shared **central** vault (`daily/`, `features/`, `decisions/`, shareable `people/`) and one **personal** vault per person (`daily/` + private `me.md`, their activity only), all under `vaults_root`; + events in Keewano or SQLite.
 - **Build/target fixtures:** reads `contracts/fixtures/processed/`; target shape is `contracts/fixtures/vault/`.
 
 ## Run
@@ -27,14 +27,15 @@ pnpm --filter @sitdown/vault test
 ```
 
 ### Config & env
-Reads `~/.sitdown/config.json` (`vault_path`, `event_store`, `people`). Everything is
+Reads `~/.sitdown/config.json` (`vaults_root`, `central_vault`, `event_store`, `people`). Everything is
 overridable by env — handy for fixtures/tests:
 
 | Env | Meaning | Default |
 | --- | --- | --- |
 | `SITDOWN_HOME` | runtime home | `~/.sitdown` |
 | `SITDOWN_CONFIG` | config path | `$SITDOWN_HOME/config.json` |
-| `SITDOWN_VAULT` | vault output dir | config `vault_path` or `~/vault` |
+| `SITDOWN_VAULTS_ROOT` | base dir: central + per-person vaults | `$SITDOWN_HOME/vaults` |
+| `SITDOWN_CENTRAL_VAULT` | central (shared) vault dir | `$SITDOWN_VAULTS_ROOT/central` |
 | `SITDOWN_PROCESSED` | Digest input dir | `$SITDOWN_HOME/processed` |
 | `SITDOWN_EVENT_STORE` | `sqlite` \| `keewano` | config `event_store` or `sqlite` |
 | `SITDOWN_EVENTS_DB` | SQLite file path | `$SITDOWN_HOME/events.sqlite` |

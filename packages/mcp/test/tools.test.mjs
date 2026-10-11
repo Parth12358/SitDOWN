@@ -14,7 +14,9 @@ const fixtures = path.join(repoRoot, "contracts", "fixtures");
 const tmp = mkdtempSync(path.join(here, ".tmp-"));
 cpSync(path.join(fixtures, "vault"), path.join(tmp, "vault"), { recursive: true });
 cpSync(path.join(fixtures, "events.sqlite"), path.join(tmp, "events.sqlite"));
-process.env.SITDOWN_VAULT_PATH = path.join(tmp, "vault");
+// Split layout: vaults root holds central/ + one dir per person.
+process.env.SITDOWN_VAULTS_ROOT = path.join(tmp, "vault");
+process.env.SITDOWN_CENTRAL_VAULT = path.join(tmp, "vault", "central");
 process.env.SITDOWN_EVENTS_DB = path.join(tmp, "events.sqlite");
 
 after(() => rmSync(tmp, { recursive: true, force: true }));
@@ -25,7 +27,7 @@ before(async () => {
   const { createEventStore } = await import("../dist/events/index.js");
   tools = await import("../dist/tools.js");
   const cfg = loadConfig();
-  ctx = { vaultPath: cfg.vaultPath, cfg, events: createEventStore(cfg) };
+  ctx = { centralVault: cfg.centralVault, personVaultFor: cfg.personVault, cfg, events: createEventStore(cfg) };
 });
 
 test("get_brief resolves feature from branch and cites the session", async () => {
@@ -59,13 +61,13 @@ test("search_docs finds notes and ranks by match", async () => {
   assert.ok(r.results[0].path.includes("refund-idempotency"));
 });
 
-test("private person note gated by requester", async () => {
+test("private me.md only readable by its owner (structural, per-vault)", async () => {
   const anon = await tools.get_summary({ author: "alex" }, ctx);
   const anonSources = anon.summaries.flatMap((s) => s.sources);
-  assert.ok(!anonSources.includes("people/alex.md"), "anon must not see alex's private note");
+  assert.ok(!anonSources.some((s) => s.endsWith("me.md")), "anon must not see any private me.md");
   const self = await tools.get_summary({ author: "alex", requester: "alex" }, ctx);
   const selfSources = self.summaries.flatMap((s) => s.sources);
-  assert.ok(selfSources.includes("people/alex.md"), "alex sees own private note");
+  assert.ok(selfSources.includes("alex/me.md"), "alex sees own private me.md");
 });
 
 test("get_summary produces per-person spoken text from daily notes", async () => {

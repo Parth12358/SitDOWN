@@ -5,7 +5,7 @@ One MCP server so coding agents, the voice assistant, and evals can query the do
 **PRD:** [`../../prds/PRD-D-mcp-server.md`](../../prds/PRD-D-mcp-server.md) · **Owns:** this package only.
 
 ## I/O (contract)
-- **In:** the vault at `vault_path`; the event store (Keewano or SQLite).
+- **In:** the central vault (shared queries) + the caller's own personal vault (private notes); the event store (Keewano or SQLite).
 - **Out:** MCP tools over **stdio** (`dist/stdio.js`) and **HTTP** (`dist/http.js`, port `MCP_HTTP_PORT`, default 7331).
 - **Until C delivers:** falls back automatically to `contracts/fixtures/vault/` and `contracts/fixtures/events.sqlite`, so it runs standalone today.
 
@@ -29,11 +29,13 @@ returns an `mcp-session-id` to echo on later calls). Liveness probe at `GET /hea
 - `get_brief` / `get_summary` target < 500 ms.
 
 ## Config & environment
-Reads `~/.sitdown/config.json` (`vault_path`, `event_store`, `people`). Overrides, useful for dev/demo:
+Reads `~/.sitdown/config.json` (`vaults_root`, `central_vault`, `event_store`, `people`). Overrides, useful for dev/demo:
 
 | Env | Purpose |
 | --- | --- |
-| `SITDOWN_VAULT_PATH` | vault directory (else config, else fixtures) |
+| `SITDOWN_CENTRAL_VAULT` | central (shared) vault dir (else config, else fixtures) |
+| `SITDOWN_VAULTS_ROOT` | base dir holding central + per-person vaults |
+| `SITDOWN_VAULT_PATH` | legacy alias for `SITDOWN_CENTRAL_VAULT` |
 | `SITDOWN_EVENTS_DB` | SQLite event store path (else `~/.sitdown/events.sqlite`, else fixtures) |
 | `SITDOWN_REQUESTER` | default author slug for private-note gating |
 | `MCP_HTTP_PORT` | HTTP port (default 7331) |

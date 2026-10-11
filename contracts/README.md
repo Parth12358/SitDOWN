@@ -8,7 +8,8 @@ Files on disk are the contract. Each stage reads one folder and writes the next,
 ~/.sitdown/inbox/sessions/   A writes SessionRecord JSON   -> B reads
 ~/.sitdown/inbox/commits/    A writes CommitRecord JSON    -> B reads
 ~/.sitdown/processed/        B writes Digest JSON          -> C reads
-<vault_path>/                C writes Markdown notes       -> D reads
+<vaults_root>/central/       C writes shared notes         -> D reads
+<vaults_root>/<person>/      C writes personal notes       -> D reads (owner only)
 <event store>                C writes events               -> D reads
 MCP server (stdio + HTTP)    D serves tools                -> coding agents, E, F
 ```
@@ -31,7 +32,9 @@ contracts/
     inbox/sessions/        SessionRecords (A's output)   -> B's input
     inbox/commits/         CommitRecords (A's output)    -> B's input
     processed/             Digests (B's output)          -> C's input
-    vault/                 sample Obsidian vault (C's output) -> D's input
+    vault/                 sample vaults (C's output) -> D's input
+      central/             shared: features, decisions, team daily, people index
+      sam/  alex/          per-person: daily log + private me.md
     events.seed.json       event rows, backend-neutral
     events.seed.sql        same rows as SQL (CREATE + INSERT)
     events.sqlite          seeded SQLite store (generate with `pnpm fixtures:events`)
