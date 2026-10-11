@@ -7,7 +7,7 @@
 //   node demo/serve.mjs                         # then open http://localhost:8788
 //   SITDOWN_CENTRAL_VAULT=… SITDOWN_VAULTS_ROOT=… SITDOWN_EVENTS_DB=… node demo/serve.mjs
 import { createServer } from "node:http";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync, realpathSync } from "node:fs";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -50,33 +50,78 @@ function askClaude(prompt) {
   });
 }
 
-// RAG: retrieve the most relevant notes, then let the model synthesize a grounded, cited answer.
-async function answer(q, requester) {
-  const sr = await tools.search_docs({ query: q, requester }, ctx);
-  const hits = sr.results || [];
-  if (!hits.length) return { answer: "I don't know — the docs don't cover this yet.", citations: [], found: false };
-  const notes = {};
-  for (const t of ["decision", "feature", "daily", "person"]) for (const n of readNotes(ctx.centralVault, t)) notes[n.relPath] = n;
-  const context = hits.slice(0, 6).map((h) => {
-    const n = notes[h.path];
-    return `### ${h.title}\npath: ${h.path}\nsources: ${(h.sources || []).join(", ") || "—"}\n${n ? n.autoBody : h.snippet}`;
-  }).join("\n\n");
-  const prompt = `You are SitDOWN, answering a teammate's question strictly from the engineering notes below.
-Use ONLY these notes. Answer in 2–4 sentences, concrete and specific. Name the people and decisions involved.
-If the notes don't contain the answer, say you don't know. Do not invent anything.
+// Everyone the docs know about (config + whoever has a person note in the vault).
+function peopleNames() {
+  const set = new Set(Object.keys(ctx.cfg.people || {}));
+  for (const n of readNotes(ctx.centralVault, "person")) set.add(typeof n.frontmatter.author === "string" ? n.frontmatter.author : n.name);
+  return [...set];
+}
+// Pull one daily note's bullets for a given person (its `## [[name]]` section).
+function dailyBulletsFor(note, person) {
+  const out = []; let on = false;
+  for (const line of note.autoBody.split(/\r?\n/)) {
+    const h = /^##\s+\[\[([^\]]+)\]\]/.exec(line) || /^##\s+(.+)$/.exec(line);
+    if (h) { on = h[1].trim().toLowerCase() === person.toLowerCase(); continue; }
+    const b = /^[-*]\s+(.*)$/.exec(line.trim());
+    if (on && b) out.push(b[1].replace(/\[\[|\]\]/g, "").trim());
+  }
+  return out;
+}
+// A full dossier of one person's work, gathered across the vault.
+function dossier(person) {
+  const cite = new Set(); const parts = [`=== ${person} ===`];
+  const pnote = readNotes(ctx.centralVault, "person").find((n) => (n.frontmatter.author || n.name) === person);
+  if (pnote) { parts.push(`Profile (${pnote.relPath}):\n${pnote.autoBody}`); cite.add(pnote.relPath); }
+  const days = [];
+  for (const d of readNotes(ctx.centralVault, "daily")) {
+    const b = dailyBulletsFor(d, person);
+    if (b.length) { days.push(`${d.name}: ${b.join("; ")}`); cite.add(d.relPath); }
+  }
+  if (days.length) parts.push(`Daily log:\n${days.map((x) => "- " + x).join("\n")}`);
+  const decs = readNotes(ctx.centralVault, "decision").filter((n) => n.frontmatter.author === person);
+  if (decs.length) { parts.push(`Decisions ${person} made:\n${decs.map((n) => `- ${n.title} — ${n.autoBody.replace(/\s+/g, " ").slice(0, 220)} (${n.relPath})`).join("\n")}`); decs.forEach((n) => cite.add(n.relPath)); }
+  const feats = readNotes(ctx.centralVault, "feature").filter((n) => new RegExp(`\\b${person}\\b`, "i").test(n.autoBody));
+  if (feats.length) { parts.push(`Features ${person} touched: ${feats.map((n) => n.name).join(", ")}`); feats.forEach((n) => cite.add(n.relPath)); }
+  return { text: parts.join("\n\n"), citations: [...cite], empty: !pnote && !days.length && !decs.length };
+}
 
+// RAG: person-aware retrieval + keyword search, then a grounded, cited answer. `history` is recent
+// {q,a} turns so follow-ups ("go deeper", "what else") keep their subject.
+async function answer(q, requester, history = []) {
+  const all = peopleNames();
+  const named = all.filter((n) => new RegExp(`\\b${n}\\b`, "i").test(q));
+  // If the question names nobody, fall back to the tagged person, then to anyone named in the recent turns.
+  let focus = named.length ? named : (requester && all.includes(requester) ? [requester] : []);
+  if (!focus.length) { const histText = history.map((h) => `${h.q} ${h.a || ""}`).join(" "); focus = all.filter((n) => new RegExp(`\\b${n}\\b`, "i").test(histText)); }
+  focus = [...new Set(focus)].slice(0, 3);
+
+  const blocks = []; const cites = new Set();
+  for (const p of focus) { const d = dossier(p); if (!d.empty) { blocks.push(d.text); d.citations.forEach((c) => cites.add(c)); } }
+
+  const sr = await tools.search_docs({ query: q, requester }, ctx);
+  const notes = {}; for (const t of ["decision", "feature", "daily", "person"]) for (const n of readNotes(ctx.centralVault, t)) notes[n.relPath] = n;
+  for (const h of (sr.results || []).slice(0, 6)) { if (cites.has(h.path)) continue; const n = notes[h.path]; blocks.push(`### ${h.title} (${h.path})\nsources: ${(h.sources || []).join(", ") || "—"}\n${n ? n.autoBody : h.snippet}`); cites.add(h.path); }
+
+  if (!blocks.length) return { answer: "I don't know — the docs don't cover this yet.", citations: [], found: false };
+
+  const wantsDetail = /detail|deep|deeper|everything|more|thorough|breakdown|all of/i.test(q) || focus.length > 0;
+  const histText = history.filter((h) => h.q).slice(-3).map((h) => `Q: ${h.q}\nA: ${(h.a || "").slice(0, 300)}`).join("\n");
+  const prompt = `You are SitDOWN, answering a teammate strictly from the engineering notes below. Use ONLY these notes; never invent. Name specific features, dates, decisions, and sources.
+${focus.length ? `The question is about ${focus.join(" and ")}. Give a DETAILED, organized rundown: group by feature or date, list what they shipped, the decisions they made (chosen vs rejected and why), and anything that reads open/blocked. Use short bold headers and bullets.` : wantsDetail ? "Give a thorough, organized answer with bullets." : "Answer in 2–4 crisp sentences."}
+If the notes don't cover it, say you don't know.
+${histText ? `\nCONVERSATION SO FAR:\n${histText}\n` : ""}
 QUESTION: ${q}
 
 NOTES:
-${context}
+${blocks.join("\n\n")}
 
-Reply with ONLY a JSON object: {"answer": "<your answer>", "citations": ["<note path or source id you used>", ...]}`;
+Reply with ONLY JSON: {"answer": "<markdown: ** bold headers, - bullets>", "citations": ["<note path or source id>", ...]}`;
   const raw = await askClaude(prompt);
   let parsed;
   try { const s = raw.indexOf("{"), e = raw.lastIndexOf("}"); parsed = JSON.parse(raw.slice(s, e + 1)); }
   catch { parsed = { answer: raw.trim(), citations: [] }; }
-  const citations = (parsed.citations && parsed.citations.length ? parsed.citations : sr.citations) || [];
-  return { answer: parsed.answer || "I don't know.", citations, found: true };
+  const citations = (parsed.citations && parsed.citations.length ? parsed.citations : [...cites]) || [];
+  return { answer: parsed.answer || "I don't know.", citations, found: true, focus };
 }
 
 function page() {
@@ -125,6 +170,21 @@ const server = createServer((req, res) => {
   if (u.pathname === "/api/health") {
     return json(200, { ok: true, central: cfg.centralVault, fixtures: cfg.usingFixtures, events: events.kind });
   }
+  if (u.pathname === "/api/note") {
+    // Serve a single .md note from the central or a per-person vault. Path-safe: resolved paths
+    // must stay inside a known vault and end in .md.
+    const rel = (u.searchParams.get("path") || "").replace(/^\/+/, "").replace(/^central\//, "");
+    const roots = [cfg.centralVault, cfg.vaultsRoot].map((r) => { try { return realpathSync(r); } catch { return path.resolve(r); } });
+    const cands = [path.join(cfg.centralVault, rel), path.join(cfg.vaultsRoot, rel)];
+    let hit = null;
+    for (const c of cands) {
+      if (!c.endsWith(".md") || !existsSync(c)) continue;
+      let real; try { real = realpathSync(c); } catch { continue; }
+      if (roots.some((r) => real === r || real.startsWith(r + path.sep))) { hit = c; break; }
+    }
+    if (!hit) return json(404, { error: "note not found", path: rel });
+    return json(200, { path: rel, content: readFileSync(hit, "utf8") });
+  }
   if (u.pathname === "/api/standup" && req.method === "POST") {
     req.on("data", () => {}); req.on("end", async () => {
       try { return json(200, await standup()); } catch (e) { return json(500, { error: String(e && e.message || e) }); }
@@ -134,7 +194,7 @@ const server = createServer((req, res) => {
   if (u.pathname === "/api/answer" && req.method === "POST") {
     let b = ""; req.on("data", (c) => (b += c));
     req.on("end", async () => {
-      try { const { q, requester } = JSON.parse(b || "{}"); return json(200, await answer(String(q || ""), requester)); }
+      try { const { q, requester, history } = JSON.parse(b || "{}"); return json(200, await answer(String(q || ""), requester, Array.isArray(history) ? history : [])); }
       catch (e) { return json(500, { error: String(e && e.message || e) }); }
     });
     return;

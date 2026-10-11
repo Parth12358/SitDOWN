@@ -126,8 +126,11 @@ for (const f of FEATURES_LIST) {
     const a = chance(0.85) ? pick(owners) : pick(Object.keys(PEOPLE));
     const ns = AGENT_NS();
     WORK.push({ f, a, d: pick(DATES), kind: "session", ns, id: srcId(ns), head: act, sum: `${act} ${pick(SUMMARY_TAILS)}`.trim(), add: [[int(1, 30), int(40, 180)]], iv: int(0, 2) });
+    const noun = act.replace(/^(Add|Support|Build|Generate|Handle|Record|Stream|Schedule|Score|Queue|Block|Map|Rank|Send|Track|Roll up|Validate|Split|Warm|Sign|Retry|Version|Return|Highlight|Guide|Respect|Backfill|Hash|Cache)\s+/i, "").toLowerCase();
     // some commit follow-ups
-    if (chance(0.5)) { const a2 = pick(owners); const noun = act.replace(/^(Add|Support|Build|Generate|Handle|Record|Stream|Schedule|Score|Queue|Block|Map|Rank|Send|Track|Roll up|Validate|Split|Warm|Sign|Retry|Version|Return|Highlight|Guide|Respect|Backfill|Hash|Cache)\s+/i, ""); WORK.push({ f, a: a2, d: pick(DATES), kind: "commit", sha: sha(), head: `Fix ${noun.toLowerCase()}`, sum: `Follow-up fix for ${noun.toLowerCase()}.`, add: [[int(1, 20), int(8, 40)]], editsAgent: chance(0.6) }); }
+    if (chance(0.5)) WORK.push({ f, a: pick(owners), d: pick(DATES), kind: "commit", sha: sha(), head: `Fix ${noun}`, sum: `Follow-up fix for ${noun}.`, add: [[int(1, 20), int(8, 40)]], editsAgent: chance(0.6) });
+    // iteration sessions (hardening / tests / refactors) — more history per feature
+    if (chance(0.6)) { const v = pick(["Harden", "Add tests for", "Refactor", "Document", "Optimize", "Add metrics to"]); const ns2 = AGENT_NS(); WORK.push({ f, a: pick(owners), d: pick(DATES), kind: "session", ns: ns2, id: srcId(ns2), head: `${v} ${noun}`, sum: `${v} ${noun} ${pick(SUMMARY_TAILS)}`.trim(), add: [[int(1, 20), int(20, 90)]], iv: int(0, 2) }); }
   }
 }
 // sort chronologically for nicer histories
