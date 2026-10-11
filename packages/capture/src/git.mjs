@@ -6,12 +6,31 @@ import path from "node:path";
 
 const GIT_TIMEOUT_MS = 4000;
 
+// Shared wall-clock deadline for the whole hook run. A `setTimeout` cannot preempt a chain of
+// synchronous execFileSync calls, so each git call instead clamps its own timeout to the time
+// remaining and bails out instantly once the budget is spent. This is what actually enforces the
+// PRD's "hooks exit within 5 seconds, always" guarantee for the blocking git chain.
+let deadlineAt = Infinity;
+
+/** Start the hook budget: every runGit after this returns null once `ms` have elapsed. */
+export function setGitDeadline(ms) {
+  deadlineAt = Date.now() + ms;
+}
+
+/** Clear the budget (e.g. for long-running tooling that isn't a hook). */
+export function clearGitDeadline() {
+  deadlineAt = Infinity;
+}
+
 /** Run a git subcommand in `cwd`; return trimmed stdout, or null on any failure. */
 export function runGit(args, cwd) {
+  const remaining = deadlineAt - Date.now();
+  if (remaining <= 0) return null; // budget spent: skip rather than block past the deadline
+  const timeout = Math.max(1, Math.min(GIT_TIMEOUT_MS, remaining));
   try {
     const out = execFileSync("git", args, {
       cwd: cwd || process.cwd(),
-      timeout: GIT_TIMEOUT_MS,
+      timeout,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
       maxBuffer: 16 * 1024 * 1024,

@@ -12,6 +12,7 @@ import {
   gitBranch,
   commitFileRanges,
   coAuthorsFromMessage,
+  setGitDeadline,
 } from "../git.mjs";
 import { loadConfig, resolveAuthor } from "../config.mjs";
 
@@ -50,6 +51,8 @@ export async function runPostCommit(opts = {}) {
 }
 
 export async function postCommitMain(argv = []) {
+  // Budget the blocking git chain to 4s; a hard exit at 5s is the backstop for the async tail.
+  setGitDeadline(4000);
   const guard = setTimeout(() => process.exit(0), 5000);
   guard.unref?.();
   const res = await runPostCommit({});

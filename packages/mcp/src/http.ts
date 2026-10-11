@@ -9,7 +9,27 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createServer as createMcp, VERSION } from "./server.js";
 
 const PORT = Number(process.env.MCP_HTTP_PORT ?? 7331);
+// Bind to loopback by default: the tools write files (record_decision) and events
+// (log_unanswered), so the server must not be reachable from the LAN. Set MCP_HTTP_HOST
+// deliberately (e.g. 0.0.0.0) to expose it.
+const HOST = process.env.MCP_HTTP_HOST ?? "127.0.0.1";
 const MCP_PATH = "/mcp";
+
+// Defense-in-depth against DNS rebinding: only accept Host headers that point at this
+// loopback server. Skipped when the operator opted into a non-loopback bind.
+const LOOPBACK_HOSTS = new Set([
+  `127.0.0.1:${PORT}`,
+  `localhost:${PORT}`,
+  `[::1]:${PORT}`,
+  "127.0.0.1",
+  "localhost",
+  "[::1]",
+]);
+function hostAllowed(req: IncomingMessage): boolean {
+  if (HOST !== "127.0.0.1" && HOST !== "localhost" && HOST !== "::1") return true; // operator opted out
+  const host = (req.headers.host ?? "").toLowerCase();
+  return host === "" || LOOPBACK_HOSTS.has(host);
+}
 
 interface Session {
   server: McpServer;
@@ -85,6 +105,11 @@ const http = createHttp((req, res) => {
     return;
   }
 
+  if (!hostAllowed(req)) {
+    jsonError(res, 403, "Forbidden host (loopback only)");
+    return;
+  }
+
   if (req.method === "POST") {
     handlePost(req, res).catch((e) => {
       console.error(e);
@@ -105,6 +130,6 @@ const http = createHttp((req, res) => {
   res.writeHead(405, { allow: "POST, DELETE" }).end("Method Not Allowed");
 });
 
-http.listen(PORT, () => {
-  console.error(`[sitdown-mcp] http server on http://localhost:${PORT}${MCP_PATH} (health at /health)`);
+http.listen(PORT, HOST, () => {
+  console.error(`[sitdown-mcp] http server on http://${HOST}:${PORT}${MCP_PATH} (health at /health)`);
 });

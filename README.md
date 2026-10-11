@@ -66,9 +66,25 @@ claude mcp add sitdown -- node packages/mcp/dist/stdio.js
 
 ## What is mocked
 
-Keep this list honest for judges. Update before submitting.
+Honest status for judges.
 
-- [ ] (fill in)
+**Fully working, live (no mocks):**
+- Capture (A): real Claude Code / Codex transcript + git-commit parsing into schema-valid records.
+- Summarizer (B): end-to-end on fixtures; cloud LLM path is real (needs `LLM_API_KEY`).
+- Vault (C): real Markdown vault + **SQLite** event store, git-committed.
+- MCP (D): all 7 tools over stdio + HTTP, served from the real vault + SQLite events.
+- Loop A→B→C→D and the eval suite (F) run live: `demo-reset` → MCP → `pnpm --filter @sitdown/evals run eval` scores 21/21 against the generated vault.
+
+**Mocked / not yet verified against the real service:**
+- **Keewano**: events are *written* to the REST ingress but all reads (`who_knows`, open-threads) are served from the local SQLite mirror; custom-event registration (IDs 2000+) is not performed. SQLite mode is the live path.
+- **Dial voice/SMS (E)**: the REST client is built but unverified against a live account; the offline demo uses a canned transcript. A real phone call depends on the inferred Dial contract + a live key, and mid-call doc lookup needs a public tunnel.
+- **Ollama (B)**: local-LLM backend is implemented but has no test / was not run against a live Ollama.
+- **Codex capture (A)**: Claude Code is verified; the Codex end-of-session hook config format is not vendor-verified.
+- **demo-reset** replays the known **fixture digests** through C (deterministic, offline) rather than re-summarizing today's live sessions through B (that path needs `LLM_API_KEY`).
+
+**Not done:** Sparta rubric (`packages/evals/SPARTA.md`) and Alike evidence (`demo/ALIKE.md`) are empty pending onsite info; backup video + HackerSquad submission are process steps, not code.
+
+Paths: home `~/.sitdown/` holds inbox/processed/events; the Obsidian **vault is separate** (`vault_path`, default `~/vault`). `demo-reset` uses an isolated `~/.sitdown/vault` so it never touches a real vault.
 
 ## Credits
 

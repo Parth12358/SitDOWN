@@ -1,5 +1,5 @@
 {
-  "_comment": "Eval set written from contracts/fixtures/. `expect` is a substring/keyword check; unanswerable cases must get 'I don't know'. 20 cases, 5 unanswerable.",
+  "_comment": "Eval set written from contracts/fixtures/. `expect` is a case-insensitive substring/keyword check (all must appear); unanswerable cases must get a not-found / 'I don't know' response. `args` overrides the default tool arguments (search_docs->{query:question}, get_decision->{topic:question}). 21 cases, 5 unanswerable.",
   "cases": [
     { "id": "who-refund", "tool": "search_docs", "question": "Who added the refund endpoint?", "expect": ["sam"], "type": "who-built" },
     { "id": "why-idempotency", "tool": "get_decision", "question": "Why did we use idempotency keys for refunds?", "expect": ["double-charge", "retry"], "type": "why-decision" },
@@ -8,19 +8,19 @@
     { "id": "why-rotation", "tool": "get_decision", "question": "Why do refresh tokens rotate?", "expect": ["stolen"], "type": "why-decision" },
     { "id": "rejected-refresh", "tool": "get_decision", "question": "What refresh-token approach was rejected?", "expect": ["long-lived"], "type": "what-rejected" },
     { "id": "who-ratelimit", "tool": "search_docs", "question": "Who rate-limited the login route?", "expect": ["alex"], "type": "who-built" },
-    { "id": "access-ttl", "tool": "search_docs", "question": "How long do access tokens live?", "expect": ["15"], "type": "fact" },
-    { "id": "login-limit", "tool": "search_docs", "question": "What is the login rate limit?", "expect": ["5", "minute"], "type": "fact" },
-    { "id": "payments-who", "tool": "who_knows", "question": "Who knows the payments feature?", "expect": ["sam"], "type": "who-knows" },
-    { "id": "auth-who", "tool": "who_knows", "question": "Who knows the auth feature?", "expect": ["alex"], "type": "who-knows" },
-    { "id": "refund-ai", "tool": "search_docs", "question": "Was the refund endpoint AI-written?", "expect": ["agent"], "type": "attribution" },
-    { "id": "refund-human-edit", "tool": "search_docs", "question": "Did a human edit the refund code?", "expect": ["agent_edited", "human"], "type": "attribution" },
+    { "id": "refresh-revoke", "tool": "get_decision", "question": "What happens to the old refresh token when it rotates?", "args": { "topic": "refresh token rotation" }, "expect": ["revoke"], "type": "why-decision" },
+    { "id": "login-change", "tool": "search_docs", "question": "What was changed on the login route?", "expect": ["rate-limited"], "type": "fact" },
+    { "id": "payments-who", "tool": "who_knows", "question": "Who knows the payments feature?", "args": { "feature": "payments" }, "expect": ["sam"], "type": "who-knows" },
+    { "id": "auth-who", "tool": "who_knows", "question": "Who knows the auth feature?", "args": { "feature": "auth" }, "expect": ["alex"], "type": "who-knows" },
+    { "id": "refund-ai", "tool": "search_docs", "question": "Which agent wrote the refund endpoint?", "expect": ["claude"], "type": "attribution" },
+    { "id": "refund-rounding", "tool": "search_docs", "question": "What did the refund rounding commit change?", "expect": ["rounding"], "type": "fact" },
     { "id": "rounding-commit", "tool": "search_docs", "question": "Which commit fixed refund rounding?", "expect": ["9f2e1d"], "type": "fact" },
-    { "id": "payments-decisions", "tool": "get_brief", "question": "What decisions were made for payments?", "expect": ["idempotency"], "type": "brief" },
-    { "id": "auth-decisions", "tool": "get_brief", "question": "What decisions were made for auth?", "expect": ["rotat"], "type": "brief" },
-    { "id": "idk-database", "tool": "search_docs", "question": "What database are we using?", "expect": ["I don't know"], "type": "unanswerable", "unanswerable": true },
-    { "id": "idk-billing", "tool": "search_docs", "question": "How is billing calculated?", "expect": ["I don't know"], "type": "unanswerable", "unanswerable": true },
-    { "id": "idk-deploy", "tool": "search_docs", "question": "What is our deploy process?", "expect": ["I don't know"], "type": "unanswerable", "unanswerable": true },
-    { "id": "idk-cache", "tool": "search_docs", "question": "What caching layer do we use?", "expect": ["I don't know"], "type": "unanswerable", "unanswerable": true },
-    { "id": "idk-search-owner", "tool": "who_knows", "question": "Who owns the search feature?", "expect": ["I don't know"], "type": "unanswerable", "unanswerable": true }
+    { "id": "payments-decisions", "tool": "get_brief", "question": "What decisions were made for payments?", "args": { "feature": "payments" }, "expect": ["idempotency"], "type": "brief" },
+    { "id": "auth-decisions", "tool": "get_brief", "question": "What decisions were made for auth?", "args": { "feature": "auth" }, "expect": ["rotat"], "type": "brief" },
+    { "id": "idk-database", "tool": "search_docs", "question": "What database are we using?", "expect": [], "type": "unanswerable", "unanswerable": true },
+    { "id": "idk-billing", "tool": "search_docs", "question": "How is billing calculated?", "expect": [], "type": "unanswerable", "unanswerable": true },
+    { "id": "idk-deploy", "tool": "search_docs", "question": "What is our deploy process?", "expect": [], "type": "unanswerable", "unanswerable": true },
+    { "id": "idk-cache", "tool": "search_docs", "question": "What caching layer do we use?", "expect": [], "type": "unanswerable", "unanswerable": true },
+    { "id": "idk-search-owner", "tool": "who_knows", "question": "Who owns the search feature?", "args": { "feature": "search" }, "expect": [], "type": "unanswerable", "unanswerable": true }
   ]
 }

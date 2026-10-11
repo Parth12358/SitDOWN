@@ -25,12 +25,14 @@ Turn raw session and commit records into Digests: what happened, which decisions
 - [ ] Decisions: chosen option, rejected alternatives, reason. Include approaches the agent tried that the user rejected. Decision `slug` is kebab-case and stable.
 - [ ] `feature`: from branch name (`feat/payments` → `payments`), else most-edited top-level folder, else ask the LLM.
 - [ ] `human_interventions`: count of user messages that correct, reject, or redirect the agent mid-session.
-- [ ] Attribution, recorded not guessed:
-  - Lines in a commit that match an earlier SessionRecord's `edits` on the same branch and file → `agent`
-  - Agent lines that a human later changed in another commit → `agent_edited`
-  - Remaining added lines → `human`
-  - No session match but a `Co-authored-by: Claude` (or similar) trailer → `agent` for the whole commit
-  - Never infer from code style
+- [ ] Attribution, recorded not guessed. Decide per commit by **who authored the commit**:
+  - In an **agent's own commit** (co-authored-by trailer, or lines matching that session's `edits`): matched lines → `agent`.
+  - In a **human's later commit** on the same branch/file that overlaps lines an earlier session wrote → `agent_edited` (the human changed agent code).
+  - Remaining added lines → `human`.
+  - No session match but a `Co-authored-by: Claude` (or similar) trailer → `agent` for the whole commit.
+  - Never infer from code style.
+
+  Note: the fixture `commit-9f2e1d` is a **human** commit editing the agent's refund code, so its overlapping range is `agent_edited` and the new tail is `human` — this is the canonical example of the second rule. The current B implementation labels every session-matched range `agent_edited`; that is correct for human commits like the fixture but would mislabel an agent's *own* follow-up commit — track as a known gap.
 - [ ] Secret filtering before any LLM call: API-key patterns, bearer tokens, private keys, `.env`-style `KEY=value` lines → `[REDACTED]`.
 
 ## Done when

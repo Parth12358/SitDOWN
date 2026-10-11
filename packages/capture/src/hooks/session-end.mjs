@@ -8,7 +8,7 @@ import { parseTranscript } from "../parse/index.mjs";
 import { archiveTranscript, readTranscript, archiveKeyFor } from "../sweep.mjs";
 import { buildSessionRecord, writeSessionRecord } from "../record.mjs";
 import { validateRecord } from "../validate.mjs";
-import { gitIdentity, gitRepoSlug, gitBranch } from "../git.mjs";
+import { gitIdentity, gitRepoSlug, gitBranch, setGitDeadline } from "../git.mjs";
 import { loadConfig, resolveAuthor } from "../config.mjs";
 import { shouldIgnore } from "../ignore.mjs";
 import { expandHome } from "../paths.mjs";
@@ -97,6 +97,8 @@ export async function runSessionEnd(payload = {}, opts = {}) {
 
 /** CLI entry: read stdin, run, exit 0 no matter what (bounded by a hard timer). */
 export async function sessionEndMain(argv = []) {
+  // Budget the blocking git chain to 4s; a hard exit at 5s is the backstop for the async tail.
+  setGitDeadline(4000);
   const guard = setTimeout(() => process.exit(0), 5000);
   guard.unref?.();
   const agent = argValue(argv, "--agent");

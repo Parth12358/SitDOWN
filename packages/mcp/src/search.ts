@@ -17,9 +17,26 @@ function tokenize(s: string): string[] {
   return s.toLowerCase().match(/[a-z0-9]+/g) ?? [];
 }
 
+// Function/question words carry no topical signal. Dropping them (and matching whole tokens, not
+// substrings) stops unanswerable queries like "How is billing calculated?" from matching the "is"
+// inside "decision" and returning a spurious hit instead of an honest no-match.
+const STOPWORDS = new Set([
+  "what", "how", "why", "who", "whom", "whose", "when", "where", "which",
+  "the", "a", "an", "is", "are", "was", "were", "am", "be", "been", "being",
+  "do", "does", "did", "done", "we", "our", "ours", "us", "i", "you", "your",
+  "they", "them", "their", "it", "its", "he", "she", "of", "to", "in", "on",
+  "at", "for", "and", "or", "but", "with", "from", "by", "as", "this", "that",
+  "these", "those", "there", "here", "about", "into", "have", "has", "had",
+  "use", "used", "using", "uses", "do", "doing",
+]);
+
+function queryTerms(query: string): string[] {
+  return [...new Set(tokenize(query))].filter((t) => t.length >= 3 && !STOPWORDS.has(t));
+}
+
 /** Rank notes against a free-text query. Returns the top `limit` visible hits. */
 export function searchNotes(vaultPath: string, query: string, requester?: string, limit = 5): SearchHit[] {
-  const terms = [...new Set(tokenize(query))];
+  const terms = queryTerms(query);
   if (terms.length === 0) return [];
 
   const notes: Note[] = ALL_TYPES.flatMap((t) => readNotes(vaultPath, t)).filter(
@@ -31,13 +48,15 @@ export function searchNotes(vaultPath: string, query: string, requester?: string
 
   const hits: SearchHit[] = [];
   for (const note of notes) {
-    const haystack = `${note.title}\n${JSON.stringify(note.frontmatter)}\n${note.body}`.toLowerCase();
+    const hayText = `${note.title}\n${JSON.stringify(note.frontmatter)}\n${note.body}`;
+    const counts = new Map<string, number>();
+    for (const tk of tokenize(hayText)) counts.set(tk, (counts.get(tk) ?? 0) + 1);
+    const titleTokens = new Set(tokenize(note.title));
     let matchScore = 0;
     for (const term of terms) {
-      const count = occurrences(haystack, term);
+      const count = counts.get(term) ?? 0; // whole-token match, not substring
       if (count === 0) continue;
-      // Title hits are worth more.
-      const inTitle = note.title.toLowerCase().includes(term) ? 3 : 0;
+      const inTitle = titleTokens.has(term) ? 3 : 0; // title hits are worth more
       matchScore += count + inTitle;
     }
     if (matchScore === 0) continue;
@@ -57,16 +76,6 @@ export function searchNotes(vaultPath: string, query: string, requester?: string
 
   hits.sort((a, b) => b.score - a.score);
   return hits.slice(0, limit);
-}
-
-function occurrences(haystack: string, term: string): number {
-  let i = 0;
-  let n = 0;
-  while ((i = haystack.indexOf(term, i)) !== -1) {
-    n++;
-    i += term.length;
-  }
-  return n;
 }
 
 function makeSnippet(text: string, terms: string[], width = 200): string {
