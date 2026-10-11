@@ -1,93 +1,117 @@
-# SitDOWN: Automated Agent Documentation
+# SitDOWN — automated agent documentation
 
-`SitDOWN` turns every coding-agent session and commit into living, linked documentation that people and agents can query. Docs are plain Markdown in vaults you own (Obsidian-compatible): **one personal vault per person** (their own log + private notes) plus a **shared central vault** for team features and decisions — so nobody else's work ever lands in your personal space. A voice assistant that answers questions in standups is a secondary way to read them.
+SitDOWN turns every coding-agent session and git commit into living, linked Markdown docs that people and the *next* agent can query. The reasoning behind the work — what was tried, rejected, and why — is captured automatically, attributed to human vs AI, and made answerable in plain language.
 
-Built at SpeedHacks (SF Tech Week, Oct 11 2026). Submission due 5 PM PT.
+Docs live in Obsidian-compatible vaults you own: **one personal vault per person** (their own log + private notes) plus a **shared central vault** for team features and decisions. A web dashboard ("Ask the record") puts an AI on top of it all.
 
-## How it works
-
-```text
-Agent sessions ─┐
-                ├─> Capture (A) ─> Summarizer (B) ─> Vault + events (C) ─> MCP query server (D) ─┬─> Coding agents (start briefed)
-Commits ────────┘                                                                                ├─> Voice assistant (E, Dial)
-                                                                                                 └─> Evals (F, Sparta)
-```
-
-Each stage reads one folder and writes the next, so every stage can run alone on fixtures. See `OVERALL_PLAN.md` for the contracts.
-
-## Repo layout
-
-```text
-README.md            this file
-OVERALL_PLAN.md      schedule, contracts, rules for every agent
-PRD-MAIN.md          product requirements
-prds/                one PRD per build agent (A to F)
-contracts/           schemas + fixtures (owned by the human; agents read only)
-packages/capture/    A: local-only fork of @alikeai/setup (MIT)
-packages/summarizer/ B: Digests, decisions, attribution
-packages/vault/      C: Markdown vault writer + event adapter
-packages/mcp/        D: MCP query server
-packages/voice/      E: Dial voice assistant
-packages/evals/      F: evals (Sparta)
-demo/                demo script and assets (F)
-scripts/             demo-reset, backfill (F)
-```
+> New here? The fastest way to see it is the [demo](#run-the-demo). To debug a setup (especially on Windows), see **[`docs/`](docs/)**.
 
 ## Requirements
 
-- Node.js 20+
-- pnpm
-- Git
-- Optional: Ollama (local mode), Keewano account, Dial account (coupon `DIAL_FOR_SPEEDHACKS`), Sparta access
+- **Node.js 20+** and **pnpm** (via `corepack enable pnpm`)
+- **Git**
+- **Claude Code**, installed and signed in — the default summarizer and the dashboard AI use your session via `claude -p` (no API key needed)
+- Optional: `LLM_API_KEY` (cloud LLM), Ollama (local LLM), Keewano / Dial / Sparta accounts
 
-## Quick start
+Everything is pure JavaScript (SQLite via `sql.js` — no native builds), so it runs on Linux, macOS, and Windows.
+
+## Install
 
 ```bash
+corepack enable pnpm      # if you don't have pnpm
 pnpm install
-cp config.example.json ~/.sitdown/config.json   # set vaults_root, central_vault, event_store, llm
-pnpm --filter capture run install-hooks        # wires agent + git hooks (local only)
-pnpm --filter mcp run start                    # MCP server
-pnpm --filter evals run eval                   # score the docs
-node scripts/demo-reset.mjs                    # reset to a known demo state
+pnpm build                # compile the TypeScript packages
 ```
 
-Register the MCP server in Claude Code so new sessions start briefed:
+## Run the demo
+
+The dashboard demo runs the whole product locally against a generated org's worth of data.
+
+```bash
+pnpm demo                 # build → seed the demo org → serve http://localhost:8788
+```
+
+Then open **http://localhost:8788** and ask things in plain language ("why do refunds use idempotency keys?", "what did otto do?", "who knows billing?", or hit **Standup**). Every answer cites its source notes — click a `.md` chip to read the note inline.
+
+Other handy commands:
+
+```bash
+pnpm demo:showcase        # narrated, end-to-end walkthrough of every feature + a live capture test
+pnpm demo:test            # the live A→B→C→D test on its own (asserts a new session becomes queryable)
+pnpm demo:seed            # rebuild the demo vault + events to the known state
+pnpm demo:serve           # just serve (after a seed)
+```
+
+Recording on **Windows**? Use Windows Terminal and see **[`docs/windows.md`](docs/windows.md)**.
+
+## Use it on a real project
+
+```bash
+cp config.example.json ~/.sitdown/config.json          # set vaults_root, central_vault, llm
+pnpm --filter @sitdown/capture run install-hooks        # capture agent sessions (local only)
+pnpm --filter @sitdown/capture run install-git-hook     # capture commits (run in each repo)
+pnpm --filter @sitdown/mcp run start                    # the MCP query server (stdio)
+```
+
+Register the MCP server with Claude Code so new sessions start briefed:
 
 ```bash
 claude mcp add sitdown -- node packages/mcp/dist/stdio.js
 ```
 
+## How it works
+
+```text
+agent sessions ─┐
+                ├─► A capture ─► B summarizer ─► C vault + events ─► D MCP ─┬─► coding agents (start briefed)
+git commits ────┘   (records)   (digests, claude -p) (central + per-person) ├─► Ask dashboard / voice (E)
+                                                                            └─► evals (F)
+```
+
+Files on disk are the interface between stages, so each stage runs alone. Full contracts: [`OVERALL_PLAN.md`](OVERALL_PLAN.md). Architecture + where to look per stage: [`docs/architecture.md`](docs/architecture.md).
+
 ## Modes
 
 | Mode | Summaries (`llm`) | Events | Network |
 | --- | --- | --- | --- |
-| Default | `claude_cli` — `claude -p` (uses your Claude Code session; no API key) | SQLite | Only Claude Code's own traffic |
-| Hackathon | `cloud` — Anthropic API (`LLM_API_KEY`) | Keewano | Yes |
+| **Default** | `claude_cli` — `claude -p` (your Claude Code session; no API key) | SQLite | Only Claude Code's own traffic |
+| Cloud | `cloud` — Anthropic API (`LLM_API_KEY`) | Keewano | Yes |
 | Local | `ollama` — local model | SQLite | None; no login, nothing leaves the machine |
+
+## Repo layout
+
+```text
+README.md             this file
+docs/                 install, Windows, troubleshooting, architecture
+OVERALL_PLAN.md       contracts between packages
+prds/                 one PRD per build area (A–F)
+contracts/            schemas + fixtures (read-only interface)
+packages/capture/     A: capture agent sessions + commits → records
+packages/summarizer/  B: records → Digests (claude -p / cloud / ollama)
+packages/vault/       C: Digests → central + per-person vaults, + events
+packages/mcp/         D: MCP query server (stdio + HTTP), 7 tools
+packages/voice/       E: Dial voice/SMS meeting assistant
+packages/evals/       F: eval suite
+demo/                 the "Ask the record" dashboard, server, seeder, showcase
+scripts/              demo-reset, backfill
+```
 
 ## What is mocked
 
-Honest status for judges.
+Honest status.
 
-**Fully working, live (no mocks):**
-- Capture (A): real Claude Code / Codex transcript + git-commit parsing into schema-valid records.
-- Summarizer (B): end-to-end on fixtures; the default `claude_cli` backend shells out to `claude -p` (uses your Claude Code session — no API key). `cloud` (needs `LLM_API_KEY`) and `ollama` backends also implemented.
-- Vault (C): real Markdown vault + **SQLite** event store, git-committed.
-- MCP (D): all 7 tools over stdio + HTTP, served from the real vault + SQLite events.
-- Loop A→B→C→D and the eval suite (F) run live: `demo-reset` → MCP → `pnpm --filter @sitdown/evals run eval` scores 21/21 against the generated vault.
+**Fully working, live (no mocks):** capture (A), summarizer (B, real `claude -p`), vault + **SQLite** events (C), MCP's 7 tools over stdio + HTTP (D), the A→B→C→D loop, the dashboard's RAG answers + standup + note reader, and the eval suite (21/21).
 
-**Mocked / not yet verified against the real service:**
-- **Keewano**: events are *written* to the REST ingress but all reads (`who_knows`, open-threads) are served from the local SQLite mirror; custom-event registration (IDs 2000+) is not performed. SQLite mode is the live path.
-- **Dial voice/SMS (E)**: the REST client is built but unverified against a live account; the offline demo uses a canned transcript. A real phone call depends on the inferred Dial contract + a live key, and mid-call doc lookup needs a public tunnel.
-- **`claude_cli` (B, default)**: the adapter + parsing are unit-tested with an injected runner, but a real `claude -p` summarization run depends on Claude Code being installed and signed in.
-- **Ollama (B)**: local-LLM backend is implemented but has no test / was not run against a live Ollama.
-- **Codex capture (A)**: Claude Code is verified; the Codex end-of-session hook config format is not vendor-verified.
-- **demo-reset** replays the known **fixture digests** through C (deterministic, offline) rather than re-summarizing today's live sessions through B (that path needs `LLM_API_KEY`).
+**Mocked / unverified against the real service:**
+- **Keewano** — events are *written* to the REST ingress but reads are served from the SQLite mirror; custom-event registration isn't done. SQLite is the live path.
+- **Dial voice/SMS (E)** — REST client built but unverified against a live account; the offline demo uses a canned transcript.
+- **Ollama (B)** — implemented, not run against a live Ollama.
+- **Codex capture (A)** — Claude Code is verified; Codex's hook format is vendor-unverified (installer marks it experimental).
 
-**Not done:** Sparta rubric (`packages/evals/SPARTA.md`) and Alike evidence (`demo/ALIKE.md`) are empty pending onsite info; backup video + HackerSquad submission are process steps, not code.
+**Not done:** Sparta rubric and Alike evidence (onsite), backup video + submission.
 
-Paths: home `~/.sitdown/` holds inbox/processed/events; the Obsidian **vaults are separate** — `vaults_root` (default `~/sitdown/vaults`) holds the `central/` vault plus one `<person>/` vault each. `demo-reset` uses an isolated `~/.sitdown/vaults` so it never touches a real vault. (Personal→central links use `obsidian://` URLs, since `[[wikilinks]]` don't span separate Obsidian vaults.)
+Paths: `~/.sitdown/` holds inbox/processed/events; vaults are separate under `vaults_root` (`central/` + one `<person>/` each). The demo uses an isolated `demo/.sitdown-demo` so it never touches a real vault.
 
 ## Credits
 
-`packages/capture` is a fork of [`@alikeai/setup`](https://www.npmjs.com/package/@alikeai/setup), MIT, Copyright (c) 2026 Alike AI. Partner tools: Alike, Dial, Keewano, Sparta.
+`packages/capture` is a fork of [`@alikeai/setup`](https://www.npmjs.com/package/@alikeai/setup), MIT, © 2026 Alike AI. Partner tools: Alike, Dial, Keewano, Sparta.
