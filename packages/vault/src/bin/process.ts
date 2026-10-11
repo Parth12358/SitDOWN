@@ -5,6 +5,7 @@
 // Env overrides (see config.ts): SITDOWN_PROCESSED, SITDOWN_VAULTS_ROOT, SITDOWN_CENTRAL_VAULT, SITDOWN_EVENTS_DB,
 // SITDOWN_EVENT_STORE, SITDOWN_HOME, SITDOWN_CONFIG.
 // Flags: --watch[=ms]  poll instead of exiting; --all  reprocess every Digest.
+import { existsSync } from "node:fs";
 import { loadConfig } from "../config.js";
 import { makeEventSink } from "../events.js";
 import { eventsForDigest } from "../events/map.js";
@@ -44,6 +45,9 @@ async function runOnce(all: boolean): Promise<number> {
   }
 
   const state = await loadState(cfg.stateDir);
+  // Reconcile with reality: if the SQLite event store was wiped but state still marks sources
+  // as emitted, forget that so events repopulate instead of silently staying empty.
+  if (cfg.eventStore === "sqlite" && !existsSync(cfg.eventsDbPath)) state.emitted = {};
   const changed = all ? digests : changedDigests(digests, state);
   if (!changed.length) {
     console.log("[vault] nothing new to process");

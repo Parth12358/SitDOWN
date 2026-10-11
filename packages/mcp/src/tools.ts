@@ -100,6 +100,20 @@ function dedupe(arr: string[]): string[] {
   return [...new Set(arr.filter(Boolean))];
 }
 
+/**
+ * The authors the event store should be able to name: config.people plus everyone who has a
+ * person note in the central vault. Without this, a contributor absent from config shows up in
+ * who_knows as a raw entity UUID instead of their name.
+ */
+function knownPeople(ctx: Ctx): Record<string, string[]> {
+  const map: Record<string, string[]> = { ...(ctx.cfg.people ?? {}) };
+  for (const note of readNotes(ctx.centralVault, "person")) {
+    const author = typeof note.frontmatter.author === "string" ? note.frontmatter.author : note.name;
+    if (author && !(author in map)) map[author] = [];
+  }
+  return map;
+}
+
 // ---------------------------------------------------------------------------
 // Phase 1 tools
 // ---------------------------------------------------------------------------
@@ -120,7 +134,7 @@ export async function get_brief(
 
   const [openThreads, ranked] = await Promise.all([
     ctx.events.openThreads(feature),
-    ctx.events.authorsRanked(feature, ctx.cfg.people),
+    ctx.events.authorsRanked(feature, knownPeople(ctx)),
   ]);
 
   const featureNote = readNotes(ctx.centralVault, "feature").find((n) => n.name === feature);
@@ -263,7 +277,7 @@ export async function get_decision(input: { slug?: string; topic?: string }, ctx
 }
 
 export async function who_knows(input: { feature: string }, ctx: Ctx) {
-  const ranked = await ctx.events.authorsRanked(input.feature, ctx.cfg.people);
+  const ranked = await ctx.events.authorsRanked(input.feature, knownPeople(ctx));
   const featureNote = readNotes(ctx.centralVault, "feature").find((n) => n.name === input.feature);
   return {
     found: ranked.length > 0,
@@ -296,7 +310,7 @@ export async function log_unanswered(input: { topic: string; asked_by?: string }
     features.find((f) => f.toLowerCase().includes(topicLc)) ??
     input.topic;
 
-  const ranked = await ctx.events.authorsRanked(resolvedFeature, ctx.cfg.people);
+  const ranked = await ctx.events.authorsRanked(resolvedFeature, knownPeople(ctx));
   const ping = ranked[0];
   return {
     logged: true,

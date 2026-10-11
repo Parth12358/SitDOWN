@@ -87,7 +87,8 @@ export class SqliteEventStore implements EventStore {
 
     const ranked: RankedAuthor[] = [];
     for (const [entity, evts] of byEntity) {
-      const author = entityToAuthor.get(entity) ?? entity;
+      const author = entityToAuthor.get(entity);
+      if (!author) continue; // orphan entity with no known person — never surface a raw UUID
       let current: string | null = null;
       let score = 0;
       let touches = 0;

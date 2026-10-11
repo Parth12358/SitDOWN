@@ -3,9 +3,16 @@
 // so a git hiccup is logged, never thrown.
 import { execFile } from "node:child_process";
 import { mkdir } from "node:fs/promises";
+import { realpathSync } from "node:fs";
+import path from "node:path";
 import { promisify } from "node:util";
 
 const run = promisify(execFile);
+
+function samePath(a: string, b: string): boolean {
+  const norm = (p: string) => { try { return realpathSync(p); } catch { return path.resolve(p); } };
+  return norm(a) === norm(b);
+}
 
 const COMMITTER = ["-c", "user.name=SitDOWN", "-c", "user.email=sitdown@localhost"];
 
@@ -14,14 +21,21 @@ async function git(cwd: string, args: string[]): Promise<string> {
   return stdout;
 }
 
-/** Initialize the vault as a git repo if it isn't one already. */
+/**
+ * Make the vault its OWN git repo. If it merely sits inside an enclosing repo (e.g. a demo vault
+ * under the project tree), `git init` a nested repo here — otherwise `git add`/`commit` would run
+ * against the parent repo and pollute its history.
+ */
 export async function ensureRepo(vaultPath: string): Promise<void> {
   await mkdir(vaultPath, { recursive: true });
+  let isOwnRepo = false;
   try {
-    await git(vaultPath, ["rev-parse", "--is-inside-work-tree"]);
+    const top = (await git(vaultPath, ["rev-parse", "--show-toplevel"])).trim();
+    isOwnRepo = !!top && samePath(top, vaultPath);
   } catch {
-    await git(vaultPath, ["init", "-q"]);
+    isOwnRepo = false;
   }
+  if (!isOwnRepo) await git(vaultPath, ["init", "-q"]);
 }
 
 /** Stage everything and commit. Returns false if there was nothing to commit. */
