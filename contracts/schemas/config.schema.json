@@ -9,7 +9,7 @@
   "properties": {
     "vault_path": { "type": "string", "description": "~-prefixed or absolute path to the Obsidian vault." },
     "event_store": { "type": "string", "enum": ["keewano", "sqlite"] },
-    "llm": { "type": "string", "enum": ["cloud", "ollama"] },
+    "llm": { "type": "string", "enum": ["claude_cli", "cloud", "ollama"] },
     "people": {
       "type": "object",
       "description": "author slug -> list of identifiers (emails, phone numbers).",

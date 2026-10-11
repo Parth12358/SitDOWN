@@ -11,7 +11,7 @@ Turns raw session/commit records into **Digests**: what happened, which decision
 
 ## Key points
 - Export `summarize(record)` (done as a stub in `src/index.ts`).
-- LLM adapter, two backends: cloud (`LLM_API_KEY`) and Ollama. Strict-JSON → validate → retry once → fall back to `headline`+`summary`.
+- LLM adapter, three backends (set `llm` in config): **`claude_cli`** (default — `claude -p`, no API key), `cloud` (`LLM_API_KEY`), `ollama`. Strict-JSON → validate → retry once → fall back to `headline`+`summary`.
 - Attribution is **recorded, never guessed from code style** (see PRD-B rules).
 - Redact secrets before any LLM call.
 

@@ -167,7 +167,7 @@ function fallbackText(record: AnyRecord): { headline: string; summary: string } 
 
 /** Summarize one record into a Digest. Exported so others can call it directly (PRD-B). */
 export async function summarize(record: AnyRecord, opts: SummarizeOptions = {}): Promise<Digest> {
-  const llm = opts.llm ?? makeLlm("cloud");
+  const llm = opts.llm ?? makeLlm("claude_cli");
   const id = identity(record);
   const attribution: Attribution[] = isCommit(record)
     ? attributeCommit(record, opts.sessions ?? [])

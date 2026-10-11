@@ -67,7 +67,7 @@ async function loadConfig(configPath: string): Promise<Config> {
   try {
     return JSON.parse(await readFile(configPath, "utf8")) as Config;
   } catch {
-    return { vault_path: "~/vault", event_store: "sqlite", llm: "cloud" };
+    return { vault_path: "~/vault", event_store: "sqlite", llm: "claude_cli" };
   }
 }
 
@@ -79,7 +79,7 @@ function sourceOf(record: AnyRecord): string {
 export async function processInbox(home = sitdownHome()): Promise<string[]> {
   const p = paths(home);
   const config = await loadConfig(p.config);
-  const llm = makeLlm(config.llm === "ollama" ? "ollama" : "cloud");
+  const llm = makeLlm(config.llm === "ollama" || config.llm === "cloud" ? config.llm : "claude_cli");
 
   const sessions = await readJsonFiles<SessionRecord>(p.sessions);
   const commits = await readJsonFiles<CommitRecord>(p.commits);

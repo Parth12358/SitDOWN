@@ -1,7 +1,7 @@
 {
   "vault_path": "~/vault",
   "event_store": "sqlite",
-  "llm": "cloud",
+  "llm": "claude_cli",
   "people": {
     "sam": ["sam@example.com"],
     "alex": ["alex@example.com"]

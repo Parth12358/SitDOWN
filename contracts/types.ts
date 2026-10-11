@@ -86,7 +86,7 @@ export interface Digest {
 }
 
 export type EventStore = "keewano" | "sqlite";
-export type LlmBackend = "cloud" | "ollama";
+export type LlmBackend = "claude_cli" | "cloud" | "ollama";
 
 /** ~/.sitdown/config.json */
 export interface Config {

@@ -59,10 +59,11 @@ claude mcp add sitdown -- node packages/mcp/dist/stdio.js
 
 ## Modes
 
-| Mode | Summaries | Events | Network |
+| Mode | Summaries (`llm`) | Events | Network |
 | --- | --- | --- | --- |
-| Hackathon | Cloud LLM | Keewano | Yes |
-| Local | Ollama | SQLite | None; no login, nothing leaves the machine |
+| Default | `claude_cli` — `claude -p` (uses your Claude Code session; no API key) | SQLite | Only Claude Code's own traffic |
+| Hackathon | `cloud` — Anthropic API (`LLM_API_KEY`) | Keewano | Yes |
+| Local | `ollama` — local model | SQLite | None; no login, nothing leaves the machine |
 
 ## What is mocked
 
@@ -70,7 +71,7 @@ Honest status for judges.
 
 **Fully working, live (no mocks):**
 - Capture (A): real Claude Code / Codex transcript + git-commit parsing into schema-valid records.
-- Summarizer (B): end-to-end on fixtures; cloud LLM path is real (needs `LLM_API_KEY`).
+- Summarizer (B): end-to-end on fixtures; the default `claude_cli` backend shells out to `claude -p` (uses your Claude Code session — no API key). `cloud` (needs `LLM_API_KEY`) and `ollama` backends also implemented.
 - Vault (C): real Markdown vault + **SQLite** event store, git-committed.
 - MCP (D): all 7 tools over stdio + HTTP, served from the real vault + SQLite events.
 - Loop A→B→C→D and the eval suite (F) run live: `demo-reset` → MCP → `pnpm --filter @sitdown/evals run eval` scores 21/21 against the generated vault.
@@ -78,6 +79,7 @@ Honest status for judges.
 **Mocked / not yet verified against the real service:**
 - **Keewano**: events are *written* to the REST ingress but all reads (`who_knows`, open-threads) are served from the local SQLite mirror; custom-event registration (IDs 2000+) is not performed. SQLite mode is the live path.
 - **Dial voice/SMS (E)**: the REST client is built but unverified against a live account; the offline demo uses a canned transcript. A real phone call depends on the inferred Dial contract + a live key, and mid-call doc lookup needs a public tunnel.
+- **`claude_cli` (B, default)**: the adapter + parsing are unit-tested with an injected runner, but a real `claude -p` summarization run depends on Claude Code being installed and signed in.
 - **Ollama (B)**: local-LLM backend is implemented but has no test / was not run against a live Ollama.
 - **Codex capture (A)**: Claude Code is verified; the Codex end-of-session hook config format is not vendor-verified.
 - **demo-reset** replays the known **fixture digests** through C (deterministic, offline) rather than re-summarizing today's live sessions through B (that path needs `LLM_API_KEY`).

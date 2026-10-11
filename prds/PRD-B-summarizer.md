@@ -20,7 +20,12 @@ Turn raw session and commit records into Digests: what happened, which decisions
 
 - [ ] Watch the inbox (polling every few seconds is fine) and process each record exactly once; track processed IDs in `~/.sitdown/state/summarizer.json`.
 - [ ] Export a `summarize(record)` function too, so others can call it directly.
-- [ ] LLM adapter with one interface and two backends: cloud API (default; key from `LLM_API_KEY`) and Ollama (`llm: "ollama"` in config). Ask for strict JSON matching the Digest schema; validate; retry once on invalid output; on second failure write a Digest with only `headline` and `summary`.
+- [ ] LLM adapter with one interface and three backends, chosen by `llm` in config:
+  - `claude_cli` (**default**): shells out to `claude -p … --output-format json` — uses the signed-in Claude Code session, so no API key. Override the binary with `CLAUDE_BIN`, timeout with `CLAUDE_TIMEOUT_MS`.
+  - `cloud`: Anthropic API, key from `LLM_API_KEY`, model from `LLM_MODEL`.
+  - `ollama`: local model at `OLLAMA_HOST`.
+
+  Ask for strict JSON matching the Digest schema; validate; retry once on invalid output; on second failure write a Digest with only `headline` and `summary`.
 - [ ] Long transcripts: drop tool outputs over 2 KB and keep prompts, agent messages, tool names, and file paths before sending.
 - [ ] Decisions: chosen option, rejected alternatives, reason. Include approaches the agent tried that the user rejected. Decision `slug` is kebab-case and stable.
 - [ ] `feature`: from branch name (`feat/payments` → `payments`), else most-edited top-level folder, else ask the LLM.

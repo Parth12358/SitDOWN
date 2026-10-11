@@ -1,8 +1,12 @@
-// LLM adapter: one interface, two backends.
-//   cloud (default): Anthropic API, key from LLM_API_KEY, model from LLM_MODEL (default claude-opus-4-8).
-//   ollama:          local, POST ${OLLAMA_HOST}/api/chat with format:"json".
-// Both ask for strict JSON and parse it; validation + retry live in summarize() (PRD-B).
+// LLM adapter: one interface, three backends.
+//   claude_cli (default): shells out to `claude -p … --output-format json` — uses the Claude Code
+//                         session you're already signed into, so no LLM_API_KEY is needed.
+//   cloud:                Anthropic API, key from LLM_API_KEY, model from LLM_MODEL (default claude-opus-4-8).
+//   ollama:               local, POST ${OLLAMA_HOST}/api/chat with format:"json".
+// All ask for strict JSON and parse it; validation + retry live in summarize() (PRD-B).
+import { spawn } from "node:child_process";
 import Anthropic from "@anthropic-ai/sdk";
+import type { LlmBackend } from "@sitdown/contracts";
 
 export interface Llm {
   /** Return a parsed JSON value for `prompt`. Throws if the model's output isn't valid JSON. */
@@ -23,6 +27,50 @@ function parseJsonObject(text: string): unknown {
     throw new Error("LLM response contained no JSON object");
   }
   return JSON.parse(cleaned.slice(start, end + 1));
+}
+
+/** Run `claude -p` headlessly, prompt on stdin (avoids argv length limits), JSON envelope out. */
+function defaultClaudeRun(prompt: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const bin = process.env.CLAUDE_BIN || "claude";
+    const args = ["-p", "--output-format", "json", "--append-system-prompt", SYSTEM];
+    const child = spawn(bin, args, { stdio: ["pipe", "pipe", "pipe"] });
+    let out = "";
+    let err = "";
+    const timeoutMs = Number(process.env.CLAUDE_TIMEOUT_MS) || 120_000;
+    const timer = setTimeout(() => {
+      child.kill("SIGKILL");
+      reject(new Error("claude -p timed out"));
+    }, timeoutMs);
+    child.stdout.on("data", (d) => (out += d));
+    child.stderr.on("data", (d) => (err += d));
+    child.on("error", (e) =>
+      reject(new Error(`could not run \`${bin} -p\` (is Claude Code installed?): ${e.message}`)),
+    );
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (code !== 0) return reject(new Error(`claude -p exited ${code}: ${err.slice(0, 500)}`));
+      // `--output-format json` prints an envelope { type, subtype, result, ... }; result is the text.
+      try {
+        const env = JSON.parse(out) as { result?: unknown };
+        if (env && typeof env === "object" && typeof env.result === "string") return resolve(env.result);
+      } catch {
+        /* not an envelope — fall through and parse the raw text */
+      }
+      resolve(out);
+    });
+    child.stdin.write(prompt);
+    child.stdin.end();
+  });
+}
+
+/** `claude -p` backend. `runner` is injectable for tests; it returns the model's raw text. */
+export function claudeCliLlm(runner: (prompt: string) => Promise<string> = defaultClaudeRun): Llm {
+  return {
+    async completeJson(prompt) {
+      return parseJsonObject(await runner(prompt));
+    },
+  };
 }
 
 function cloudLlm(): Llm {
@@ -73,6 +121,8 @@ function ollamaLlm(): Llm {
   };
 }
 
-export function makeLlm(backend: "cloud" | "ollama"): Llm {
-  return backend === "ollama" ? ollamaLlm() : cloudLlm();
+export function makeLlm(backend: LlmBackend): Llm {
+  if (backend === "ollama") return ollamaLlm();
+  if (backend === "cloud") return cloudLlm();
+  return claudeCliLlm(); // claude_cli (default)
 }
