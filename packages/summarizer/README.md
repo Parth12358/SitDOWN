@@ -17,5 +17,6 @@ Turns raw session/commit records into **Digests**: what happened, which decision
 
 ```bash
 pnpm --filter @sitdown/summarizer build
-pnpm --filter @sitdown/summarizer test
+pnpm --filter @sitdown/summarizer test                    # fast, offline (live claude -p test skipped)
+SITDOWN_LIVE_CLAUDE=1 pnpm --filter @sitdown/summarizer test   # opt-in: real `claude -p` smoke
 ```
