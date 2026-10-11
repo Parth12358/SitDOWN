@@ -32,6 +32,7 @@ function printReport(title, rows) {
   for (const r of rows) {
     const extra = r.backup ? `  (backup: ${r.backup})` : "";
     console.log(`  - ${r.agent ?? r.status}: ${r.status}${r.file ? `  ${r.file}` : ""}${extra}`);
+    if (r.note && /experimental/.test(r.status)) console.log(`      note: ${r.note}`);
   }
 }
 

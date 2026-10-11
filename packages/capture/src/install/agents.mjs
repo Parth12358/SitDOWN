@@ -95,6 +95,11 @@ function agentTargets(home, env) {
       present: () => existsSync(codexHome(home, env)),
       file: codexHooksPath(home, env),
       event: "Stop",
+      // UNVERIFIED: Codex CLI's hook-config format and session-end event name are not
+      // vendor-confirmed. We write a best-effort Claude-shaped config; it may not fire. The
+      // Codex *transcript parser* is tested and works — only the auto-trigger wiring is unproven.
+      experimental: true,
+      note: "Codex hook format is unverified; if sessions aren't captured, run `sitdown session-end` manually or capture via the git post-commit hook.",
     },
   ];
 }
@@ -107,7 +112,7 @@ export function detectAgents({ home, env } = {}) {
     const installed = Boolean(
       value?.hooks?.[t.event]?.some((g) => (g.hooks ?? []).some((h) => isOurs(h?.command)))
     );
-    return { id: t.id, label: t.label, present, file: t.file, installed };
+    return { id: t.id, label: t.label, present, file: t.file, installed, experimental: !!t.experimental };
   });
 }
 
@@ -134,13 +139,13 @@ export function installHooks({ home, env, dryRun = false, agents = null } = {}) 
       continue;
     }
     if (dryRun) {
-      report.push({ agent: t.id, status: "would-install", file: t.file });
+      report.push({ agent: t.id, status: t.experimental ? "would-install-experimental" : "would-install", file: t.file, note: t.note });
       continue;
     }
     mkdirSync(path.dirname(t.file), { recursive: true });
     const bak = backup(t.file);
     atomicWriteFile(t.file, `${JSON.stringify(settings, null, 2)}\n`);
-    report.push({ agent: t.id, status: "installed", file: t.file, backup: bak });
+    report.push({ agent: t.id, status: t.experimental ? "installed-experimental" : "installed", file: t.file, backup: bak, note: t.note });
   }
   return report;
 }

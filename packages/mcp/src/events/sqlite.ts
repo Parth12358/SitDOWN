@@ -120,25 +120,44 @@ export class SqliteEventStore implements EventStore {
 
   async openThreads(feature?: string): Promise<OpenThread[]> {
     const rows = await this.rows();
-    const asked = rows.filter((r) => r.name === "QuestionAsked" && r.value);
-    if (asked.length === 0) return [];
-    // A topic is resolved if an AnswerFound=true exists at/after its latest QuestionAsked.
-    const latestAsk = new Map<string, string>();
-    for (const r of asked) {
-      const prev = latestAsk.get(r.value as string);
-      if (!prev || r.ts > prev) latestAsk.set(r.value as string, r.ts);
+    if (rows.length === 0) return [];
+
+    // Pair each QuestionAsked with the AnswerFound that follows it for the SAME entity — the way
+    // log_unanswered writes them (QuestionAsked then AnswerFound(false) together). A global
+    // "any true answer after this ask" check would let one resolved question close every earlier
+    // open thread. Track each topic's latest ask and whether that specific ask was answered.
+    const byEntity = new Map<string, Row[]>();
+    for (const r of rows) {
+      const arr = byEntity.get(r.entity) ?? [];
+      arr.push(r); // rows arrive in ts ASC order
+      byEntity.set(r.entity, arr);
     }
-    const trueAnswers = rows.filter((r) => r.name === "AnswerFound" && r.value === "true").map((r) => r.ts);
+
+    const latest = new Map<string, { ts: string; answered: boolean }>();
+    for (const evts of byEntity.values()) {
+      let pendingTopic: string | null = null;
+      for (const e of evts) {
+        if (e.name === "QuestionAsked" && e.value) {
+          pendingTopic = e.value;
+          const cur = latest.get(e.value);
+          if (!cur || e.ts >= cur.ts) latest.set(e.value, { ts: e.ts, answered: false });
+        } else if (e.name === "AnswerFound" && pendingTopic) {
+          const cur = latest.get(pendingTopic);
+          if (cur) cur.answered = e.value === "true"; // resolve the question just asked
+          pendingTopic = null;
+        }
+      }
+    }
+
     const open: OpenThread[] = [];
-    for (const [topic, ts] of latestAsk) {
-      const resolved = trueAnswers.some((a) => a >= ts);
-      if (resolved) continue;
+    for (const [topic, info] of latest) {
+      if (info.answered) continue;
       if (feature) {
         const f = feature.toLowerCase();
         const t = topic.toLowerCase();
         if (!t.includes(f) && !f.includes(t)) continue;
       }
-      open.push({ topic, ts });
+      open.push({ topic, ts: info.ts });
     }
     open.sort((a, b) => b.ts.localeCompare(a.ts));
     return open;

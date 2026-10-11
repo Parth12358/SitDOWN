@@ -180,6 +180,11 @@ export async function get_summary(
       const entry = acc.get(author) ?? { items: [], sources: [] };
       entry.items.push(...items.map((i) => i.replace(/\s*[·•]\s*/g, " — ").replace(/\[\[|\]\]/g, "")));
       entry.sources.push(daily.relPath);
+      // Cite the source session/commit IDs referenced inline in the bullets (contract: every
+      // answer cites its source session or commit), not just the note path.
+      for (const i of items) {
+        for (const m of i.matchAll(/\b(session:[^\s)\]]+|commit:[^\s)\]]+)/g)) entry.sources.push(m[1]);
+      }
       acc.set(author, entry);
     }
   }
@@ -277,7 +282,17 @@ export async function log_unanswered(input: { topic: string; asked_by?: string }
     { name: "AnswerFound", value: false },
   ]);
 
-  const ranked = await ctx.events.authorsRanked(input.topic, ctx.cfg.people);
+  // Ranking matches features by exact name, but a free-text topic ("auth token expiry") rarely
+  // equals a feature. Resolve it to a known feature mentioned in the topic before ranking so a
+  // clear owner still gets pinged.
+  const features = readNotes(ctx.vaultPath, "feature").map((n) => n.name);
+  const topicLc = input.topic.toLowerCase();
+  const resolvedFeature =
+    features.find((f) => topicLc.includes(f.toLowerCase())) ??
+    features.find((f) => f.toLowerCase().includes(topicLc)) ??
+    input.topic;
+
+  const ranked = await ctx.events.authorsRanked(resolvedFeature, ctx.cfg.people);
   const ping = ranked[0];
   return {
     logged: true,

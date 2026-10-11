@@ -15,6 +15,7 @@ import {
   loadState,
   recordDigests,
   saveState,
+  unemittedDigests,
 } from "../state.js";
 import { collectAffected, writeBatch } from "../writer.js";
 
@@ -55,23 +56,26 @@ async function runOnce(all: boolean): Promise<number> {
   console.log(`[vault] wrote ${written.length} note(s) for ${changed.length} changed digest(s)`);
 
   // 2. Emit events (chronological), FeatureTouched already ordered first per digest.
+  //    Events are immutable facts: emit each source exactly once, even if its Digest is
+  //    re-summarized and re-selected as "changed", so the event stream never double-counts.
+  const toEmit = unemittedDigests(changed, state);
   const sink = makeEventSink(cfg.eventStore);
   let emitted = 0;
-  for (const d of chronological(changed)) {
+  for (const d of chronological(toEmit)) {
     for (const { author, event, ts } of eventsForDigest(d)) {
       await sink.emit(author, event, ts);
       emitted++;
     }
   }
   await sink.flush?.();
-  console.log(`[vault] emitted ${emitted} event(s) to ${cfg.eventStore}`);
+  console.log(`[vault] emitted ${emitted} event(s) to ${cfg.eventStore} (${toEmit.length} new source(s))`);
 
   // 3. Commit the vault naming the sources.
   const committed = await commitAll(cfg.vaultPath, batchMessage(changed.map((d) => d.source)));
   if (committed) console.log("[vault] committed vault");
 
-  // 4. Record state so these digests aren't reprocessed.
-  await saveState(cfg.stateDir, recordDigests(state, changed));
+  // 4. Record state: hashes for all changed notes, plus the sources whose events we just emitted.
+  await saveState(cfg.stateDir, recordDigests(state, changed, toEmit));
   return written.length;
 }
 
