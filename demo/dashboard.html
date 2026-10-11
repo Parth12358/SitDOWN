@@ -94,6 +94,9 @@
   .think i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); opacity: .35; animation: think 1s ease-in-out infinite; }
   .think i:nth-child(2){ animation-delay: .18s; } .think i:nth-child(3){ animation-delay: .36s; }
   @keyframes think { 0%,100%{ opacity:.25; transform: translateY(0); } 50%{ opacity: 1; transform: translateY(-3px); } }
+  .mact { margin: 10px 0 0 31px; }
+  .copyb { border: 1px solid var(--edge); background: none; color: var(--faint); font-family: var(--mono); font-size: 11px; padding: 3px 9px; border-radius: 6px; }
+  .copyb:hover { color: var(--text); border-color: var(--text-soft); }
 
   .prose { font-family: var(--serif); font-size: 16.5px; line-height: 1.6; color: var(--text); text-wrap: pretty; }
   .prose .lead { margin: 0 0 10px; } .prose p { margin: 0 0 10px; } .prose p:last-child { margin: 0; }
@@ -355,10 +358,12 @@ function body(res){ switch(res.kind){
   case "custom": return res.html; } }
 
 const thinking = `<span class="think"><i></i><i></i><i></i></span>`;
-function msgHTML(s, isLast){ return `<div class="msg${isLast&&fresh?' fresh':''}">
+function msgHTML(s, i, isLast){ return `<div class="msg${isLast&&fresh?' fresh':''}">
   <div class="you">${seal(s.as)}<span class="qq">${esc(s.q)}</span></div>
   <div class="meta"><span class="tool">${s.pending?(s.tool==="ai"?"synthesizing":"querying"):s.tool}</span>${s.pending?"":`<span class="lat">${s.lat} ms</span>`}</div>
-  <div class="answer">${s.pending?thinking:body(s.res)+sourcesRow(s.res.citations)}</div></div>`; }
+  <div class="answer">${s.pending?thinking:body(s.res)+sourcesRow(s.res.citations)}</div>
+  ${s.pending?"":`<div class="mact"><button class="copyb" data-copy="${i}">Copy</button></div>`}</div>`; }
+function copyMsg(i){ const s=msgs[i]; if(!s||!s.res) return; const t=textOf(s.res)||""; navigator.clipboard?.writeText(t).then(()=>{ const b=document.querySelector(`.copyb[data-copy="${i}"]`); if(b){ b.textContent="Copied"; setTimeout(()=>{ if(b) b.textContent="Copy"; },1400); } }); }
 
 function composer(ph){ return `<div class="composer"><span class="pre">¶</span>
   <input id="askInput" placeholder="${ph}" autocomplete="off" aria-label="Ask a question" />
@@ -380,7 +385,7 @@ function renderStage(){
   }
   if(view==="ask"){
     st.className = "stage thread";
-    st.innerHTML = `<div class="scrollarea" id="scroll"><div class="col">${msgs.map((s,i)=>msgHTML(s,i===msgs.length-1)).join("")}</div></div>
+    st.innerHTML = `<div class="scrollarea" id="scroll"><div class="col">${msgs.map((s,i)=>msgHTML(s,i,i===msgs.length-1)).join("")}</div></div>
       <div class="dock"><div class="col">${composer("Ask a follow-up…  (@name to tag)")}<div class="hint">${activeTool==="auto"?(LIVE?"<b>AI answer</b> over the docs":"<b>auto</b>"):`tool <b>${activeTool}</b>`} · add <b>@name</b> to focus a teammate · press <b>/</b> to focus</div></div></div>`;
     const sc = document.getElementById("scroll"); if(sc) sc.scrollTop = sc.scrollHeight;
     return;
@@ -423,6 +428,7 @@ function logGap(){ msgs.push({q:"Log this as a documentation gap",tool:"log_unan
   res:{kind:"custom",citations:["event_store:sqlite"],html:`<p class="prose lead">Logged. ✓</p><p class="prose" style="color:var(--text-soft)">Wrote <span class="mono" style="font-size:12px">QuestionAsked</span> + <span class="mono" style="font-size:12px">AnswerFound(false)</span> — it'll surface to whoever owns this next.</p>`}}); fresh=true; render(); }
 
 document.addEventListener("click", e=>{
+  const cp=e.target.closest(".copyb"); if(cp){ copyMsg(+cp.dataset.copy); return; }
   if(e.target.closest("[data-close]")){ closeReader(); return; }
   const sn=e.target.closest(".src[data-note]"); if(sn){ openNote(sn.dataset.note); return; }
   if(e.target.closest("[data-standup]")){ runStandup(); return; }

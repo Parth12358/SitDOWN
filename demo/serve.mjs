@@ -26,6 +26,8 @@ try {
   process.exit(1);
 }
 
+// Default to the demo home so `node demo/serve.mjs` just works (cross-OS, no env needed).
+process.env.SITDOWN_HOME = process.env.SITDOWN_HOME || path.resolve(here, "..", "demo", ".sitdown-demo");
 const cfg = loadConfig();
 const events = createEventStore(cfg);
 const ctx = { centralVault: cfg.centralVault, personVaultFor: cfg.personVault, cfg, events };
@@ -106,16 +108,27 @@ async function answer(q, requester, history = []) {
 
   const wantsDetail = /detail|deep|deeper|everything|more|thorough|breakdown|all of/i.test(q) || focus.length > 0;
   const histText = history.filter((h) => h.q).slice(-3).map((h) => `Q: ${h.q}\nA: ${(h.a || "").slice(0, 300)}`).join("\n");
-  const prompt = `You are SitDOWN, answering a teammate strictly from the engineering notes below. Use ONLY these notes; never invent. Name specific features, dates, decisions, and sources.
-${focus.length ? `The question is about ${focus.join(" and ")}. Give a DETAILED, organized rundown: group by feature or date, list what they shipped, the decisions they made (chosen vs rejected and why), and anything that reads open/blocked. Use short bold headers and bullets.` : wantsDetail ? "Give a thorough, organized answer with bullets." : "Answer in 2–4 crisp sentences."}
-If the notes don't cover it, say you don't know.
-${histText ? `\nCONVERSATION SO FAR:\n${histText}\n` : ""}
-QUESTION: ${q}
+  const shape = focus.length
+    ? `This question is about ${focus.join(" and ")}. Give a DETAILED, organized rundown grouped by feature or date: what they shipped, the decisions they made (chosen vs rejected and why), and anything open or unfinished. Use short **bold** headers and - bullets.`
+    : wantsDetail ? "Give a thorough answer with short **bold** headers and - bullets." : "Answer in 2–4 crisp sentences.";
+  // Grounded-RAG prompt: XML-delimited blocks, context-only, mandatory citations, explicit
+  // not-found rule (second hallucination guard; the first is the empty-retrieval skip above).
+  const prompt = `You are SitDOWN, a documentation assistant for an engineering team. The notes in <context> are generated from the team's real coding sessions and commits.
 
-NOTES:
+<rules>
+- Answer using ONLY <context>. Never use outside knowledge, and never guess or invent.
+- Be concrete: name the people, features, dates, and decisions involved.
+- If <context> does not contain the answer, reply exactly: "I don't know — the docs don't cover this yet." and nothing else.
+- In "citations", list the note paths and source ids from <context> that you actually used.
+- Format: ${shape}
+</rules>
+${histText ? `<conversation>\n${histText}\n</conversation>\n` : ""}<context>
 ${blocks.join("\n\n")}
+</context>
 
-Reply with ONLY JSON: {"answer": "<markdown: ** bold headers, - bullets>", "citations": ["<note path or source id>", ...]}`;
+<question>${q}</question>
+
+Return ONLY a JSON object: {"answer": "<markdown>", "citations": ["<note path or source id>", ...]}`;
   const raw = await askClaude(prompt);
   let parsed;
   try { const s = raw.indexOf("{"), e = raw.lastIndexOf("}"); parsed = JSON.parse(raw.slice(s, e + 1)); }
