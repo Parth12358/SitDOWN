@@ -17,6 +17,7 @@
     "demo:seed": "node demo/seed.mjs",
     "demo:serve": "node demo/serve.mjs",
     "demo:test": "node demo/live-test.mjs",
+    "demo:showcase": "node demo/showcase.mjs",
     "demo": "pnpm -s build && node demo/seed.mjs && node demo/serve.mjs"
   }
 }

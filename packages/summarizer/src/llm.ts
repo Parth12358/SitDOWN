@@ -33,8 +33,9 @@ function parseJsonObject(text: string): unknown {
 function defaultClaudeRun(prompt: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const bin = process.env.CLAUDE_BIN || "claude";
-    const args = ["-p", "--output-format", "json", "--append-system-prompt", SYSTEM];
-    const child = spawn(bin, args, { stdio: ["pipe", "pipe", "pipe"] });
+    // Keep args space-free and the system instruction on stdin so this works under a Windows shell.
+    const args = ["-p", "--output-format", "json"];
+    const child = spawn(bin, args, { stdio: ["pipe", "pipe", "pipe"], shell: process.platform === "win32" });
     let out = "";
     let err = "";
     const timeoutMs = Number(process.env.CLAUDE_TIMEOUT_MS) || 120_000;
@@ -59,7 +60,7 @@ function defaultClaudeRun(prompt: string): Promise<string> {
       }
       resolve(out);
     });
-    child.stdin.write(prompt);
+    child.stdin.write(`${SYSTEM}\n\n${prompt}`);
     child.stdin.end();
   });
 }

@@ -37,7 +37,7 @@ const PORT = Number(process.env.PORT || 8788);
 function askClaude(prompt) {
   return new Promise((resolve, reject) => {
     const bin = process.env.CLAUDE_BIN || "claude";
-    const child = spawn(bin, ["-p", "--output-format", "json"], { stdio: ["pipe", "pipe", "pipe"] });
+    const child = spawn(bin, ["-p", "--output-format", "json"], { stdio: ["pipe", "pipe", "pipe"], shell: process.platform === "win32" });
     let out = "", err = "";
     const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("claude -p timed out")); }, Number(process.env.CLAUDE_TIMEOUT_MS) || 60000);
     child.stdout.on("data", (d) => (out += d));

@@ -37,6 +37,20 @@ This builds the packages, seeds an org's worth of data (≈23 people, 16 feature
 
 8. **What's mocked / next (20s).** See the root README "What is mocked": Keewano reads, Dial voice, and Ollama are stubbed; everything shown above is live.
 
+## Recording on Windows
+Works on Windows — record in **Windows Terminal** (renders colors; old `conhost` won't). Setup:
+```powershell
+corepack enable pnpm
+pnpm install
+pnpm demo            # build → seed → serve at http://localhost:8788
+```
+`claude -p` is spawned Windows-safely (through the shell, system prompt on stdin). You need Claude Code installed and signed in. Colors auto-disable when output isn't a terminal (`NO_COLOR` also respected).
+
+## One-command showcase
+```bash
+pnpm demo:showcase   # narrates every capability against the live server, then the live A→B→C→D test
+```
+
 ## Reset between runs
 ```bash
 pnpm demo:seed      # rebuild the demo vault + events to the known state

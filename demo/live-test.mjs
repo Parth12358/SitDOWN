@@ -16,7 +16,9 @@ const VAULTS = path.join(HOME, "vaults"), CENTRAL = path.join(VAULTS, "central")
 const EVENTS = path.join(HOME, "events.sqlite"), PROCESSED = path.join(HOME, "processed");
 const ARCHIVE = path.join(HOME, "archive", "claude");
 const BASE = process.env.MCP_HTTP || "http://127.0.0.1:8788";
-const ok = (b) => (b ? "\x1b[32mPASS\x1b[0m" : "\x1b[31mFAIL\x1b[0m");
+const COLOR = process.stdout.isTTY && !process.env.NO_COLOR;
+const col = (code, s) => (COLOR ? `\x1b[${code}m${s}\x1b[0m` : s);
+const ok = (b) => (b ? col(32, "PASS") : col(31, "FAIL"));
 
 const { parseTranscript } = await import(path.join(repo, "packages/capture/src/parse/index.mjs"));
 const { buildSessionRecord } = await import(path.join(repo, "packages/capture/src/record.mjs"));
@@ -73,7 +75,7 @@ try {
   console.log(`\nD · live AI answer  ${ok(hit && a.found)}`);
   console.log(`     ${a.answer.replace(/\n/g, "\n     ").slice(0, 500)}`);
   console.log(`     cites: ${(a.citations || []).slice(0, 5).join(", ")}`);
-  console.log(`\n${hit && madeDecision && inVault ? "\x1b[32m✔ END-TO-END LIVE TEST PASSED\x1b[0m" : "\x1b[31m✖ something didn't flow through\x1b[0m"}`);
+  console.log(`\n${hit && madeDecision && inVault ? col(32, "✔ END-TO-END LIVE TEST PASSED") : col(31, "✖ something didn't flow through")}`);
 } catch (e) {
   console.log(`\nD · could not reach ${BASE} — is the server running?  (${e.message})`);
 }
