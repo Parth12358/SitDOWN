@@ -1,0 +1,22 @@
+{
+  "name": "@sitdown/voice",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "E: Dial voice + SMS meeting assistant. Reads the docs via D's HTTP endpoint; adds no new data.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "voice": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.json && node --test dist/__tests__/*.test.js",
+    "call": "node dist/cli.js call",
+    "standup": "node dist/cli.js standup"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^20.14.0"
+  }
+}
