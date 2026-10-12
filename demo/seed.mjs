@@ -145,7 +145,7 @@ function digestFor(w) {
 }
 const digests = WORK.map(digestFor);
 
-for (const p of [VAULTS, PROCESSED, path.join(HOME, "state")]) rmSync(p, { recursive: true, force: true });
+for (const p of [VAULTS, PROCESSED, path.join(HOME, "state"), path.join(HOME, "inbox")]) rmSync(p, { recursive: true, force: true });
 rmSync(EVENTS, { force: true });
 mkdirSync(PROCESSED, { recursive: true });
 mkdirSync(VAULTS, { recursive: true });

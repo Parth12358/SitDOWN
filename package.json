@@ -18,6 +18,8 @@
     "demo:serve": "node demo/serve.mjs",
     "demo:test": "node demo/live-test.mjs",
     "demo:showcase": "node demo/showcase.mjs",
+    "demo:live-setup": "node demo/live-setup.mjs",
+    "demo:watch": "node demo/live-watch.mjs",
     "demo": "pnpm -s build && node demo/seed.mjs && node demo/serve.mjs"
   }
 }

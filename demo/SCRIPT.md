@@ -32,10 +32,26 @@ This builds the packages, seeds an org's worth of data (≈23 people, 16 feature
 
 6. **Who to ask (20s).** Ask **"who knows billing?"** → ranked from the event store (real `who_knows`), with an **Ask [person]** button.
 
-7. **It's live, not canned (40s).** In another terminal: `pnpm demo:test`.
-   - It pushes a brand-new coding session (API-key rotation) through capture → real `claude -p` summary → vault/events, then asks the dashboard about it — and the new work shows up, attributed, cited. Prints `✔ END-TO-END LIVE TEST PASSED`.
+7. **It's live: a real Claude Code session (60–90s).** Set up beforehand (see *Live Claude Code session* below): three terminals open, with the dashboard, the watcher, and `claude` in the playground.
+   - In the `claude` terminal, ask for a small change that has a decision in it, e.g. *"search in src/search.js is a linear scan and case-sensitive. Make it case-insensitive and add a simple prefix index. Don't use a full-text library, too heavy for this app."*
+   - When Claude finishes its turn, the `Stop` hook captures the session. The watcher terminal then prints **A capture → B summary (claude -p, ~9s) → decisions → C vault ok → D ready**.
+   - In the dashboard, ask **"what did parth just do on search, and why no full-text library?"** The answer cites the brand-new `decisions/…-no-full-text-library.md`. Click it.
+   - Fallback if Claude Code misbehaves on stage: `pnpm demo:test` pushes a scripted session through the same pipeline and prints `✔ END-TO-END LIVE TEST PASSED`.
 
 8. **What's mocked / next (20s).** See the root README "What is mocked": Keewano reads, Dial voice, and Ollama are stubbed; everything shown above is live.
+
+## Live Claude Code session
+
+`pnpm demo:live-setup` creates `demo/.sitdown-demo/playground`. This is a tiny git repo (author `parth`, branch `feat/search`) with a **project-level** `.claude/settings.json` `Stop` hook that runs `demo/capture-hook.mjs`. Only sessions started in that folder are captured, and they go to the demo home, never `~/.sitdown`. Your global Claude settings are untouched.
+
+```bash
+pnpm demo:seed && pnpm demo:live-setup   # reset data + (re)create the playground
+pnpm demo:serve                          # terminal 1: dashboard
+pnpm demo:watch                          # terminal 2: inbox → claude -p → vault, narrated
+cd demo/.sitdown-demo/playground && claude   # terminal 3: the agent (trust the folder when asked)
+```
+
+The hook fires after every Claude turn. The watcher waits until the record has been quiet for ~2.5s, then re-summarizes, so a multi-turn session keeps updating its notes. Override the persona with `DEMO_AUTHOR=jin DEMO_BRANCH=feat/api pnpm demo:live-setup` (delete the playground folder first). To reset the playground's code between runs: `git -C demo/.sitdown-demo/playground checkout -- .`
 
 ## Recording on Windows
 Works on Windows — record in **Windows Terminal** (renders colors; old `conhost` won't). Setup:
