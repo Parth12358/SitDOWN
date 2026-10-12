@@ -10,17 +10,17 @@ import { createServer } from "node:http";
 import { readFileSync, existsSync, realpathSync } from "node:fs";
 import { spawn } from "node:child_process";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const mcp = path.resolve(here, "..", "packages", "mcp", "dist");
 
 let loadConfig, createEventStore, tools, readNotes;
 try {
-  ({ loadConfig } = await import(path.join(mcp, "config.js")));
-  ({ createEventStore } = await import(path.join(mcp, "events", "index.js")));
-  ({ readNotes } = await import(path.join(mcp, "vault.js")));
-  tools = await import(path.join(mcp, "tools.js"));
+  ({ loadConfig } = await import(pathToFileURL(path.join(mcp, "config.js")).href));
+  ({ createEventStore } = await import(pathToFileURL(path.join(mcp, "events", "index.js")).href));
+  ({ readNotes } = await import(pathToFileURL(path.join(mcp, "vault.js")).href));
+  tools = await import(pathToFileURL(path.join(mcp, "tools.js")).href);
 } catch (e) {
   console.error("Could not load the MCP build. Run `pnpm --filter @sitdown/mcp build` first.\n", e.message);
   process.exit(1);

@@ -4,7 +4,7 @@
 // Fails open within 5s per the project rule — a hook must never block the agent.
 import { execFileSync } from "node:child_process";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -20,9 +20,9 @@ async function run() {
   const branch = process.env.SITDOWN_BRANCH || currentBranch();
   if (!branch) return;
 
-  const { loadConfig } = await import(path.join(here, "..", "dist", "config.js"));
-  const { createEventStore } = await import(path.join(here, "..", "dist", "events", "index.js"));
-  const { get_brief } = await import(path.join(here, "..", "dist", "tools.js"));
+  const { loadConfig } = await import(pathToFileURL(path.join(here, "..", "dist", "config.js")).href);
+  const { createEventStore } = await import(pathToFileURL(path.join(here, "..", "dist", "events", "index.js")).href);
+  const { get_brief } = await import(pathToFileURL(path.join(here, "..", "dist", "tools.js")).href);
 
   const cfg = loadConfig();
   const ctx = { vaultPath: cfg.vaultPath, cfg, events: createEventStore(cfg), requester: process.env.SITDOWN_REQUESTER };

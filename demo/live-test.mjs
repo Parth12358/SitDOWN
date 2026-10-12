@@ -6,7 +6,7 @@
 //   SITDOWN_HOME=demo/.sitdown-demo node demo/live-test.mjs      (server must be running on :8788)
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -20,10 +20,10 @@ const COLOR = process.stdout.isTTY && !process.env.NO_COLOR;
 const col = (code, s) => (COLOR ? `\x1b[${code}m${s}\x1b[0m` : s);
 const ok = (b) => (b ? col(32, "PASS") : col(31, "FAIL"));
 
-const { parseTranscript } = await import(path.join(repo, "packages/capture/src/parse/index.mjs"));
-const { buildSessionRecord } = await import(path.join(repo, "packages/capture/src/record.mjs"));
-const { summarize } = await import(path.join(repo, "packages/summarizer/dist/index.js"));
-const { makeLlm } = await import(path.join(repo, "packages/summarizer/dist/llm.js"));
+const { parseTranscript } = await import(pathToFileURL(path.join(repo, "packages/capture/src/parse/index.mjs")).href);
+const { buildSessionRecord } = await import(pathToFileURL(path.join(repo, "packages/capture/src/record.mjs")).href);
+const { summarize } = await import(pathToFileURL(path.join(repo, "packages/summarizer/dist/index.js")).href);
+const { makeLlm } = await import(pathToFileURL(path.join(repo, "packages/summarizer/dist/llm.js")).href);
 
 // 1. A brand-new Claude Code session: Jin adds API-key rotation (a topic NOT in the seed).
 const KEY = "livetest" + String(Date.now()).slice(-5);
